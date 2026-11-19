@@ -22,6 +22,7 @@ const copy = {
     deliveryStep: 'Open the before and after delivery pages and focus the delivery button with the screen reader. Record the full announcement on each page.',
     uncertainty: 'The cause cannot be confirmed from the log alone.',
     fixes: {
+      missing: 'No fix is justified without a complete comparison.',
       visible_label: 'Inspect the button’s computed name and role. If the name is missing or unclear, give the button a descriptive visible label that supplies its accessible name.',
       programmatic_name: 'Inspect the button’s computed name and role. If the button is icon-only and lacks a useful name, provide a descriptive accessible name that matches its action.',
       generic: 'Inspect the control’s computed accessible name and role. If the name is missing or unclear, give it a descriptive name that matches its action.',
@@ -44,6 +45,7 @@ const copy = {
     deliveryStep: '수정 전·후 배송 페이지를 열고 스크린리더로 배송지 변경 버튼에 초점을 옮깁니다. 두 페이지의 전체 낭독 문구를 기록합니다.',
     uncertainty: '로그만으로는 원인을 확인할 수 없습니다.',
     fixes: {
+      missing: '낭독 비교가 완전하지 않아 수정을 제안할 수 없습니다.',
       visible_label: '버튼에 실제로 적용된 접근 가능한 이름과 역할을 확인합니다. 이름이 없거나 모호하면, 접근 가능한 이름으로도 사용되는 설명적인 버튼 텍스트를 화면에 표시합니다.',
       programmatic_name: '버튼에 실제로 적용된 접근 가능한 이름과 역할을 확인합니다. 아이콘만 있는 버튼에 적절한 이름이 없다면, 동작을 설명하는 접근 가능한 이름을 지정합니다.',
       generic: '컨트롤에 실제로 적용된 접근 가능한 이름과 역할을 확인합니다. 이름이 없거나 모호하면, 동작을 설명하는 접근 가능한 이름을 지정합니다.',
@@ -69,7 +71,7 @@ export function renderReport(target, observations, { delivery = false, fix = 'ge
   const fragment = target.ownerDocument.createDocumentFragment();
   // Redaction markers are useful in the editor, not as quoted evidence in a card.
   const canQuote = observations && [observations.before, observations.after].every(
-    text => !/\[[^\]\r\n]*(?:redact(?:ed|ion)|가림)[^\]\r\n]*\]/iu.test(text),
+    text => text?.trim() && !/\[[^\]\r\n]*(?:redact(?:ed|ion)|가림)[^\]\r\n]*\]/iu.test(text),
   );
   const assessment = canQuote && neutralAssessment(observations);
   for (const [lang, t] of Object.entries(copy)) {
@@ -91,10 +93,12 @@ export function renderReport(target, observations, { delivery = false, fix = 'ge
     add(article, 'p', assessment ? assessment[lang].impact : t.impacts[canQuote ? delivery ? 'delivery' : 'generic' : 'missing']);
     add(article, 'h4', t.retest);
     const steps = add(article, 'ol');
-    for (const step of assessment ? assessment[lang].retest : [t.steps[0], delivery ? t.deliveryStep : t.steps[1], t.steps[2]]) add(steps, 'li', step);
+    const retest = assessment ? assessment[lang].retest : [t.steps[0], canQuote && delivery ? t.deliveryStep : t.steps[1]];
+    if (canQuote && !assessment && delivery) retest.push(t.steps[2]);
+    for (const step of retest) add(steps, 'li', step);
     add(article, 'h4', t.fix);
     add(article, 'p', t.uncertainty);
-    add(article, 'p', assessment ? assessment[lang].fix : t.fixes[fix]);
+    add(article, 'p', assessment ? assessment[lang].fix : t.fixes[canQuote ? fix : 'missing']);
   }
   target.replaceChildren(fragment);
 }

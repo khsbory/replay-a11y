@@ -55,8 +55,8 @@ test('English synthetic TalkBack reaches Firebase with English options and maske
   for (const kind of ['Phone', 'Email', 'Amount', 'Address']) expect(prompt).toContain(`[${kind} redacted]`);
   await page.locator('#apply').click();
   await page.locator('#cloud-preview-button').click();
-  const outgoing = await page.locator('#cloud-outgoing').textContent();
-  expect(outgoing).toMatch(/\n\nBefore: Button\nAfter: Change delivery address, Button$/);
+  const outgoing = await page.locator('#cloud-utterances, #cloud-outgoing').allTextContents().then(parts => parts.join(''));
+  expect(outgoing).toMatch(/^Before: Button\nAfter: Change delivery address, Button\n\n/);
   expect(outgoing).not.toMatch(/Avery Example|Sample Street|\[.*redacted\]|Additional redaction/);
   await expect(page.locator('#cloud-send')).toBeDisabled();
   await checkNetwork();

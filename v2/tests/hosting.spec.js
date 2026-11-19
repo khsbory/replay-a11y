@@ -205,7 +205,7 @@ test('ordinary build is preview-only and its cloud pages block connections', asy
   await page.locator('#prepare').click();
   await expect(page.locator('#cloud-disabled')).toBeVisible();
   await page.locator('#cloud-preview-button').click();
-  await expect(page.locator('#cloud-outgoing')).toContainText('After: Expanded, button');
+  await expect(page.locator('#cloud-utterances')).toContainText('After: Expanded, button');
   await expect(page.locator('#cloud-approve')).toBeDisabled();
   await expect(page.locator('#cloud-send')).toBeDisabled();
 

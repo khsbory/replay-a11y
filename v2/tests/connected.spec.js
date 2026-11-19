@@ -6,8 +6,8 @@ const edited = 'Before: Button\nAfter: Filters, button\nUNAPPROVED_DRAFT';
 const quotes = { before: 'Button', after: 'Filters, button' };
 const config = { projectId: 'replay-demo-invalid', appId: '1:000000000000:web:0000000000000000000000', apiKey: `AIza${'x'.repeat(35)}` };
 const card = {
-  en: { ...quotes, impact: '<b>A descriptive label helps users identify the control.</b>', retest: ['Focus Filters with the same screen reader.', 'Compare the name and role in each version.'], fix: 'If the name is missing, inspect the computed accessible name.' },
-  ko: { ...quotes, impact: '버튼 이름을 들으면 기능을 알 수 있습니다.', retest: ['같은 스크린리더에서 필터를 실행합니다.', '이름과 역할이 읽히는지 비교합니다.'], fix: '이름이 빠졌다면 접근 가능한 이름을 검사합니다.' },
+  en: { ...quotes, impact: '<b>A descriptive label helps users identify the control.</b>', retest: ['Focus Filters with the same screen reader.', 'Compare the name and role in each version.'], fix: 'If inspection confirms the accessible name is missing or unclear, use a descriptive name.' },
+  ko: { ...quotes, impact: '버튼 이름을 들으면 기능을 알 수 있습니다.', retest: ['같은 스크린리더에서 필터를 실행합니다.', '이름과 역할이 읽히는지 비교합니다.'], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 의미를 설명하는 이름을 붙입니다.' },
 };
 
 async function setup(page, baseURL, variant = 'success', locale = 'ko') {
@@ -60,7 +60,7 @@ async function send(page) {
 
 test('connected card uses the edited comparison; approval alone stays offline', async ({ page, baseURL }) => {
   const network = await setup(page, baseURL);
-  const exact = await page.locator('#cloud-outgoing').textContent();
+  const exact = await page.locator('#cloud-utterances, #cloud-outgoing').allTextContents().then(parts => parts.join(''));
   expect(exact).toContain(`Before: ${quotes.before}\nAfter: ${quotes.after}`);
   expect(exact.length).toBeLessThanOrEqual(1000);
   expect(exact).not.toMatch(/Avery|Sample Street|UNAPPROVED/);
@@ -150,7 +150,9 @@ for (const locale of ['en', 'ko']) for (const outcome of ['success', 'failure'])
       expect((await new AxeBuilder({ page: target }).analyze()).violations, stage).toEqual([]);
     };
     const approve = page.locator('#cloud-approve');
-    const exact = await page.locator('#cloud-outgoing').textContent();
+    const exact = await page.locator('#cloud-utterances, #cloud-outgoing').allTextContents().then(parts => parts.join(''));
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#cloud-copy')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(approve).toBeFocused();
     await page.keyboard.press('Space');

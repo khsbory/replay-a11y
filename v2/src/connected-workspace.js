@@ -17,7 +17,9 @@ const el = id => document.getElementById(id);
 const original = el('source');
 const draft = el('draft');
 const preview = el('cloud-preview');
+const utterances = el('cloud-utterances');
 const outgoing = el('cloud-outgoing');
+const copyStatus = el('cloud-copy-status');
 const approve = el('cloud-approve');
 const send = el('cloud-send');
 const status = el('connected-status');
@@ -28,7 +30,8 @@ let snapshot = null;
 let approved = null;
 let attempt = null;
 
-const current = () => snapshot && snapshot.original === original.value && snapshot.draft === draft.value && outgoing.textContent === snapshot.prompt;
+const current = () => snapshot && snapshot.original === original.value && snapshot.draft === draft.value &&
+  utterances.textContent === snapshot.utterances && outgoing.textContent === snapshot.instructions;
 const clearResult = () => {
   el('connected-result').hidden = true;
   el('connected-card').replaceChildren();
@@ -55,7 +58,9 @@ export function invalidateCloud() {
   end(message, true);
   snapshot = null;
   preview.hidden = true;
+  utterances.textContent = '';
   outgoing.textContent = '';
+  setStatus(copyStatus);
   el('cloud-preview-button').setAttribute('aria-expanded', 'false');
   clearResult();
 }
@@ -69,19 +74,31 @@ el('cloud-preview-button').addEventListener('click', event => {
     return;
   }
   snapshot = { ...next, original: original.value, draft: draft.value };
-  // Keep the exact, immutable prompt text; mark only the quote spans for speech.
-  const suffix = `Before: ${next.pair.before}\nAfter: ${next.pair.after}`;
+  // Headings are UI chrome; only the contents of these two blocks are sent.
   const quote = text => {
     const span = document.createElement('span');
     span.lang = contentLanguage(text);
     span.textContent = text;
     return span;
   };
-  outgoing.replaceChildren(next.prompt.slice(0, -suffix.length) + 'Before: ',
-    quote(next.pair.before), '\nAfter: ', quote(next.pair.after));
+  utterances.replaceChildren('Before: ', quote(next.pair.before), '\nAfter: ', quote(next.pair.after), '\n\n');
+  outgoing.textContent = next.instructions;
   preview.hidden = false;
   el('cloud-preview-button').setAttribute('aria-expanded', 'true');
   el('cloud-preview-title').focus();
+});
+
+el('cloud-copy').addEventListener('click', async event => {
+  if (!event.isTrusted || !current()) return;
+  const reviewed = snapshot;
+  let message;
+  try {
+    await navigator.clipboard.writeText(reviewed.prompt);
+    message = ['Exact request text copied.', '정확한 요청 텍스트를 복사했습니다.'];
+  } catch {
+    message = ['Could not copy the request text.', '요청 텍스트를 복사하지 못했습니다.'];
+  }
+  if (snapshot === reviewed) setStatus(copyStatus, message);
 });
 
 approve.addEventListener('change', event => {

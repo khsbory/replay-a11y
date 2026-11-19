@@ -66,7 +66,7 @@
 
 ## 7 · 같은 초안에서 전체 미리보기 → 승인 → 전송 (01:46.000–02:17.000)
 
-**화면:** 같은 초안에서 **Preview exact text to send to the cloud** → **Full text to send to Gemini (up to 1,000 characters)**. 전체 미리보기에는 지시문과 `Before: Button`, `After: Change delivery address, Button`이 들어간다. 가상 이름이나 다른 줄, 원문과 전체 초안은 보내지 않는다.
+**화면:** 같은 초안에서 **Preview exact text to send to the cloud** → **Utterances that will be sent** → **Instructions sent with them**. 새 화면에서는 전후 문구가 지시문보다 먼저 나온다. 전체 미리보기에는 지시문과 `Before: Button`, `After: Change delivery address, Button`이 들어간다. 가상 이름이나 다른 줄, 원문과 전체 초안은 보내지 않는다.
 
 **승인과 전송:** **I checked that there is no private information and approve sending this exact text to Gemini in the cloud.** 체크 → **You approved this text. The request starts only when you press Send.** 표시 → **Send approved text to Gemini (new tab)**을 따로 누른다. 체크만으로 요청이 시작되지 않는다. 격리된 **Gemini relay** 탭이 App Check 확인 후 승인한 문구를 전달한다. 이 장면은 **Waiting for Gemini…** 상태로 끝난다.
 

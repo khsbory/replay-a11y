@@ -40,7 +40,7 @@
     </dl>
     <p id="no-pairs" hidden data-ko="수정 전·후 표기가 없어도 초안을 검토할 수 있습니다.">You can review the draft even without Before and After lines.</p>
     <h3 data-ko="추가 가림 제안 (선택)">Optional: additional redaction suggestions</h3>
-    <p id="model-help" data-ko="영어로 지정한 기록에만 모델 제안을 시도합니다. 한국어·혼합 기록은 패턴 가림과 직접 편집을 사용하며 모델을 호출하지 않습니다. 지원되는 데스크톱 Chrome에서도 이 프로필에서 모델을 사용할 수 있어야 합니다. 패턴으로 가린 문구만 기기 내 모델에 전달합니다. Chrome이 모델 파일을 내려받을 수 있지만, 클라우드 추론으로 전환하지 않습니다.">Model suggestions are only available for recordings marked as English. For Korean or mixed-language recordings, use pattern redaction and manual editing; no model is called. Even on supported desktop Chrome, this browser profile must have access to the model. Only text with pattern redaction is passed to the on-device model. Chrome may download model files, but the app does not switch to cloud inference.</p>
+    <p id="model-help" data-ko="현재 데스크톱 Chrome 프로필에서 모델을 사용할 수 있으면, 패턴 가림을 적용한 영어 기록만 기기에서 처리합니다. Chrome이 모델을 내려받을 수 있지만 클라우드로 전환하지 않으며, 직접 편집은 언제든 가능합니다.">If the model is available in this desktop Chrome profile, it processes only pattern-redacted English recordings. Chrome may download the model, but there is no cloud fallback; you can always edit the draft yourself.</p>
     <button id="suggest" type="button" aria-describedby="model-help" data-ko="기기 내 모델 제안 받기">Get on-device model suggestions</button>
     <p id="model-status" role="status" aria-atomic="true"></p>
     <div id="proposal" hidden>
@@ -63,8 +63,13 @@
       <p id="cloud-disabled" data-ko="이 빌드에서는 클라우드 전송이 비활성화되어 있습니다. 문구를 미리보기만 할 수 있습니다.">Cloud send is disabled in this build. You can still preview the text.</p>
       <button id="cloud-preview-button" type="button" aria-controls="cloud-preview" aria-expanded="false" data-ko="클라우드에 보낼 정확한 문구 미리보기">Preview exact text to send to the cloud</button>
       <div id="cloud-preview" hidden>
-        <h4 id="cloud-preview-title" tabindex="-1" data-ko="Gemini로 보낼 전체 텍스트 (최대 1,000자)">Full text to send to Gemini (up to 1,000 characters)</h4>
+        <h4 id="cloud-preview-title" tabindex="-1" data-ko="전송할 낭독 문구">Utterances that will be sent</h4>
+        <pre id="cloud-utterances" lang="en"></pre>
+        <h4 data-ko="함께 전송할 지시문">Instructions sent with them</h4>
         <pre id="cloud-outgoing" lang="en"></pre>
+        <p data-ko="낭독 문구와 지시문을 합쳐 최대 1,000자입니다.">The utterances and instructions together are limited to 1,000 characters.</p>
+        <button id="cloud-copy" type="button" data-ko="정확한 요청 텍스트 복사">Copy exact request text</button>
+        <p id="cloud-copy-status" role="status" aria-atomic="true"></p>
         <p data-ko="전송 버튼을 누르면 원문이나 전체 초안에 접근할 수 없는 격리된 탭이 열립니다. Google reCAPTCHA가 브라우저를 확인한 뒤 Firebase AI Logic이 위 문구 그대로와 요청 설정을 보냅니다. 이미 나간 요청은 회수할 수 없습니다.">Send opens an isolated tab that has no access to the original recording or full draft. Google reCAPTCHA checks the browser, then Firebase AI Logic sends the exact text above and the request settings. You cannot recall a request that has already left.</p>
         <label class="checkbox"><input id="cloud-approve" type="checkbox" autocomplete="off" disabled> <span data-ko="개인정보가 없음을 확인했고, 위 문구 그대로 Gemini 클라우드에 보내는 데 동의합니다.">I checked that there is no private information and approve sending this exact text to Gemini in the cloud.</span></label>
         <button id="cloud-send" type="button" disabled data-ko="승인한 문구를 Gemini에 전송 (새 탭)">Send approved text to Gemini (new tab)</button>

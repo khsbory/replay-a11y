@@ -13,14 +13,46 @@ for (const locale of ['en', 'ko']) test(`keyboard and axe: ${locale} workspace, 
   if (locale === 'ko') await page.keyboard.press('Enter');
   await expect(html).toHaveAttribute('lang', locale);
   await audit();
-  await page.locator('#sample-en').press('Enter');
+  for (const id of ['sample', 'sample-en']) {
+    await page.keyboard.press('Tab');
+    await expect(page.locator(`#${id}`)).toBeFocused();
+  }
+  await page.keyboard.press('Enter');
   await expect(page.locator('#comparison')).toBeFocused();
   const draft = await page.locator('#draft').inputValue();
-  await page.locator('#consent').press('Space');
-  await page.locator('#cloud-preview-button').press('Enter');
-  await expect(page.locator('#cloud-preview-title')).toBeFocused();
-  const prompt = await page.locator('#cloud-outgoing').textContent();
+  for (const id of ['suggest', 'draft', 'consent']) {
+    await page.keyboard.press('Tab');
+    await expect(page.locator(`#${id}`)).toBeFocused();
+  }
+  await page.keyboard.press('Space');
+  for (const id of ['make', 'cloud-preview-button']) {
+    await page.keyboard.press('Tab');
+    await expect(page.locator(`#${id}`)).toBeFocused();
+  }
+  await page.keyboard.press('Enter');
+  const firstHeading = page.getByRole('heading', { name: locale === 'en' ? 'Utterances that will be sent' : '전송할 낭독 문구', exact: true });
+  await expect(firstHeading).toBeFocused();
+  await expect(page.locator('#cloud-utterances')).toBeVisible();
+  const instructions = page.getByRole('heading', { name: locale === 'en' ? 'Instructions sent with them' : '함께 전송할 지시문', exact: true });
+  await expect(instructions).toBeVisible();
+  const readPrompt = () => page.locator('#cloud-utterances, #cloud-outgoing').allTextContents().then(parts => parts.join(''));
+  const prompt = await readPrompt();
   await expect(page.locator('#cloud-outgoing')).toHaveAttribute('lang', 'en');
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.evaluate(() => {
+    const clipboard = navigator.clipboard;
+    const writeText = clipboard.writeText.bind(clipboard);
+    clipboard.writeText = text => {
+      window.clipboardWriteInput = text;
+      return writeText(text);
+    };
+  });
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: locale === 'en' ? 'Copy exact request text' : '정확한 요청 텍스트 복사' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => window.clipboardWriteInput)).toBe(prompt);
+  // Only Windows' native clipboard conversion is normalized, never the SDK prompt.
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText().then(text => text.replace(/\r\n/g, String.fromCharCode(10))))).toBe(prompt);
   await page.keyboard.press('Tab');
   await expect(page.locator('#cloud-approve')).toBeFocused();
   await page.keyboard.press('Space');
@@ -32,7 +64,7 @@ for (const locale of ['en', 'ko']) test(`keyboard and axe: ${locale} workspace, 
   await expect(page.locator('#cloud-approve')).toBeChecked();
   await expect(page.locator('#cloud-send')).toBeEnabled();
   await expect(page.locator('#draft')).toHaveValue(draft);
-  expect(await page.locator('#cloud-outgoing').textContent()).toBe(prompt);
+  expect(await readPrompt()).toBe(prompt);
   await audit();
   await page.locator('#draft').press('End');
   await page.keyboard.press('Space');

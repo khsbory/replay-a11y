@@ -35,7 +35,7 @@ test('consent is tied to exact bytes and explicitly revoked even if the same tex
   review.revoke();
   assert.equal(review.get(exact), null);
 });
-import { prepareConnected, readGrantedPrompt, validateConnectedCard } from '../src/connected-card.js';
+import { parseConnectedCard, prepareConnected, readGrantedPrompt, validateConnectedCard } from '../src/connected-card.js';
 
 test('identical evidence and ordinary state transitions require a non-defect card in both languages', () => {
   for (const pair of [
@@ -58,8 +58,49 @@ test('identical evidence and ordinary state transitions require a non-defect car
 });
 
 test('role-only to action name assesses observed impact without assuming a confirmed defect', () => {
-  const { prompt } = prepareConnected('', 'Before: Button\nAfter: Change delivery address, Button');
-  assert.match(prompt, /role-only before announcement/);
-  assert.match(prompt, /Do not claim a confirmed defect or cause/);
-  assert.doesNotMatch(prompt, /copy these impact, retest, fix values/);
+  const pairs = [['Button', 'Change delivery address, Button'], ['버튼', '배송지 변경, 버튼'],
+    ['Link', 'Link, Shipping policy'], ['링크', '배송 정책, 링크']];
+  const guidance = pairs.map(([before, after]) => {
+    const { prompt } = prepareConnected('', `Before: ${before}\nAfter: ${after}`);
+    assert.match(prompt, /role-only before announcement/);
+    assert.match(prompt, /Do not claim a confirmed defect or cause/);
+    assert.doesNotMatch(prompt, /copy these impact, retest, fix values/);
+    return prompt.replace(`Before: ${before}\nAfter: ${after}`, '');
+  });
+  assert.equal(new Set(guidance).size, 1, 'use identical criteria and instructions in both languages');
+});
+
+test('missing, blank and role-plus-state evidence are not evidence of a missing name', () => {
+  for (const draft of ['Before: Button', 'Before:   \nAfter: 배송지 변경, 버튼', 'After: Button']) {
+    assert.deepEqual(prepareConnected('', draft), { error: 'pair' });
+  }
+  for (const draft of ['Before: Link\nAfter: Selected, Link', 'Before: 버튼\nAfter: 버튼, 접힘', 'Before: Button\nAfter: Shipping policy, Link']) {
+    assert.doesNotMatch(prepareConnected('', draft).prompt, /role-only before announcement/);
+  }
+});
+
+test('the naming suggestion must be conditional in both languages; accepted prose is not rewritten', () => {
+  const pair = { before: '링크', after: '배송 정책, 링크' };
+  const card = {
+    en: { ...pair, impact: 'The additional words identify the destination.', retest: ['Use identical reader settings.', 'Compare both full announcements.'], fix: 'If inspection confirms the accessible name is missing or unclear, use a descriptive name.' },
+    ko: { ...pair, impact: '추가 문구가 링크의 목적지를 알려 줍니다.', retest: ['같은 리더 설정을 사용합니다.', '두 전체 낭독을 비교합니다.'], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 목적지를 설명하는 이름을 붙입니다.' },
+  };
+  assert.equal(validateConnectedCard(card, pair), card);
+  assert.deepEqual(parseConnectedCard(JSON.stringify([card]), pair), card);
+  assert.equal(parseConnectedCard(JSON.stringify([card, card]), pair), null);
+  for (const [lang, fix] of [['en', 'Add a descriptive name to the link.'], ['ko', '링크에 목적지를 설명하는 이름을 붙입니다.']]) {
+    assert.equal(validateConnectedCard({ ...card, [lang]: { ...card[lang], fix } }, pair), null);
+  }
+});
+
+test('the exact outgoing text starts with the quotes and counts every character of the full prompt', () => {
+  const draft = 'Before:  Button  \nAfter:  Filters, button  ';
+  const { prompt, pair } = prepareConnected('', draft);
+  assert.ok(prompt.startsWith(`${draft}\n\n`));
+  assert.deepEqual(readGrantedPrompt(prompt), pair);
+  assert.equal(readGrantedPrompt(prompt + ' '), null);
+  const fill = 'x'.repeat(1000 - prompt.length);
+  const max = draft.replace('Filters', `Filters${fill}`);
+  assert.equal(prepareConnected('', max).prompt.length, 1000);
+  assert.deepEqual(prepareConnected('', max + ' '), { error: 'length' });
 });

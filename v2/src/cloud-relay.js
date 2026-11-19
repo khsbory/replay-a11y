@@ -1,4 +1,4 @@
-import { readGrantedPrompt, validateConnectedCard } from './connected-card.js';
+import { parseConnectedCard, readGrantedPrompt } from './connected-card.js';
 import { initLocale, setStatus } from './ui-locale.js';
 
 const messages = {
@@ -91,7 +91,7 @@ function startRelay(key) {
         signal.throwIfAborted();
         if (response.inferenceSource !== ai.InferenceSource.IN_CLOUD || response.candidates?.length !== 1 || response.candidates[0].finishReason !== 'STOP') return fail();
         const text = response.text();
-        const card = text.length <= 16_000 && validateConnectedCard(JSON.parse(text), pair);
+        const card = parseConnectedCard(text, pair);
         if (!card) return fail();
         finish(messages.success, { type: 'result', source: 'IN_CLOUD', card });
       }
