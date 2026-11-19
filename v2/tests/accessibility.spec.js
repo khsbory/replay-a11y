@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+const trackerTabs = ['tracker-device', 'tracker-os', 'tracker-browser', 'tracker-reader', 'tracker-notes', 'tracker-expected', 'tracker-tested', 'tracker-outcome', 'tracker-mask'];
 const project = 'replay-demo-invalid';
 const appId = '1:000000000000:web:0000000000000000000000';
 const cloudRecommendation = JSON.stringify({ fix: 'visible_label' });
@@ -84,14 +85,15 @@ for (const outcome of ['suggestion', 'unavailable']) {
     const a = await audit(page);
     await a.state('initial', { scan: outcome === 'suggestion', liveCount: 1 });
     await a.key('Tab', 'ui-language');
+    await a.key('Tab', 'sample-real');
     await a.key('Tab', 'sample');
     await a.key('Tab', 'sample-en');
     await a.key('Enter', 'comparison');
     await a.key('Tab', 'suggest');
     if (outcome === 'suggestion') {
-      for (const id of ['draft', 'consent']) await a.key('Tab', id);
+      for (const id of ['draft', ...trackerTabs, 'consent']) await a.key('Tab', id);
       await a.key('Space', 'consent');
-      for (const id of ['draft', 'suggest']) await a.key('Shift+Tab', id);
+      for (const id of [...trackerTabs.toReversed(), 'draft', 'suggest']) await a.key('Shift+Tab', id);
     }
     await a.key('Enter', 'suggest');
     if (outcome === 'suggestion') {
@@ -107,16 +109,16 @@ for (const outcome of ['suggestion', 'unavailable']) {
       await a.key('Enter', 'draft');
       await a.live('model-status', '추가 가림 제안을 적용했습니다. 문구가 바뀌어 동의를 취소했습니다');
       await expect(page.locator('#consent')).not.toBeChecked();
-      await a.key('Tab', 'consent');
+      for (const id of [...trackerTabs, 'consent']) await a.key('Tab', id);
       await a.key('Space', 'consent');
       await a.live('review-status', '현재 문구에 동의했습니다');
-      await a.key('Shift+Tab', 'draft');
+      for (const id of [...trackerTabs.toReversed(), 'draft']) await a.key('Shift+Tab', id);
       await a.key('End');
       await a.key('X', 'draft');
       await a.key('Y', 'draft');
       await a.live('review-status', '동의를 취소했습니다');
       await a.state('draft-edited', { liveCount: 3 });
-      await a.key('Tab', 'consent');
+      for (const id of [...trackerTabs, 'consent']) await a.key('Tab', id);
       await a.key('Space', 'consent');
       await a.key('Tab', 'make');
       await a.key('Enter', 'card-title');
@@ -132,7 +134,7 @@ for (const outcome of ['suggestion', 'unavailable']) {
       await expect(page.locator('#card')).toBeHidden();
       await a.key('Space', 'consent');
       // Editing the original hides the review; withdrawal must still be exposed.
-      for (const id of ['draft', 'suggest', 'prepare', 'english', 'source']) await a.key('Shift+Tab', id);
+      for (const id of [...trackerTabs.toReversed(), 'draft', 'suggest', 'prepare', 'english', 'source']) await a.key('Shift+Tab', id);
       await a.key('X', 'source');
       await a.key('Y', 'source');
       await a.live('input-status', '동의를 취소했습니다');
@@ -143,15 +145,15 @@ for (const outcome of ['suggestion', 'unavailable']) {
       await a.key('Tab', 'draft');
       await a.key('Control+a', 'draft');
       await a.key('Backspace', 'draft');
-      await a.key('Tab', 'consent');
+      for (const id of [...trackerTabs, 'consent']) await a.key('Tab', id);
       await a.key('Space', 'consent');
       await a.live('review-status', '동의하기 전에 카드 문구를 입력해 주세요');
       await expect(page.locator('#make')).toBeDisabled();
       await expect(page.locator('#card')).toBeHidden();
       await a.state('empty-card-refused', { scan: true });
-      await a.key('Shift+Tab', 'draft');
+      for (const id of [...trackerTabs.toReversed(), 'draft']) await a.key('Shift+Tab', id);
       await page.keyboard.type('Synthetic reviewed draft');
-      await a.key('Tab', 'consent');
+      for (const id of [...trackerTabs, 'consent']) await a.key('Tab', id);
       await a.key('Space', 'consent');
       await a.key('Tab', 'make');
       // A programmatic change without an input event exercises the stale-review guard.

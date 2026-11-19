@@ -20,6 +20,10 @@ dd { overflow-wrap: anywhere; margin: 0 0 .65rem; }
 dt { font-weight: 700; }
 .report-variant { margin: 1rem 0; padding: .75rem 1rem; background: white; border: 1px solid #a0ada5; overflow-wrap: anywhere; }
 .report-variant dd { white-space: pre-wrap; }
+#tracker-fields { min-width: 0; margin: 1rem 0; border: 1px solid #a0ada5; }
+#tracker-fields input, #tracker-fields select { max-width: 100%; min-height: 44px; font: inherit; }
+#card-text article, #connected-card article { margin: 1rem 0; padding: .75rem 1rem; background: white; border: 1px solid #a0ada5; overflow-wrap: anywhere; }
+#card-text article p, #connected-card article p { white-space: pre-wrap; }
 :focus-visible, h2[tabindex]:focus, #cloud-preview-title:focus { outline: 3px solid #874405; outline-offset: 3px; }
 [role="status"] { margin-top: .35rem; }
 [role="status"]:empty { margin: 0; }

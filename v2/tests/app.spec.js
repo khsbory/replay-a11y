@@ -69,8 +69,8 @@ test('local card does not diagnose an ordinary toggle', async ({ page }) => {
   await page.locator('#prepare').click();
   await consent(page).check();
   await makeCard(page).click();
-  await expect(page.locator('#card-text article[lang=en]')).toContainText('Insufficient evidence');
-  await expect(page.locator('#card-text article[lang=ko]')).toContainText('근거가 부족합니다');
+  await expect(page.locator('#card-text article[lang=en]')).toContainText('This comparison alone does not establish a defect or a fix.');
+  await expect(page.locator('#card-text article[lang=ko]')).toContainText('이 비교만으로는 결함이나 수정 여부를 확인할 수 없습니다.');
   await checkNetwork();
 });
 
@@ -87,6 +87,8 @@ for (const provider of ['missing', 'unavailable']) {
     await page.goto('/#ko');
     await page.keyboard.press('Tab');
     await expect(page.locator('#ui-language')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#sample-real')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(sample(page)).toBeFocused();
     await page.keyboard.press('Tab');
@@ -114,11 +116,11 @@ for (const provider of ['missing', 'unavailable']) {
     await expect(makeCard(page)).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('heading', { name: '4. 이 기기에서 만든 카드' })).toBeFocused();
-    for (const [lang, headings] of [['en', ['Observed', 'User impact', 'Retest steps', 'Possible fix']], ['ko', ['관찰 결과', '사용자 영향', '재검증 절차', '가능한 수정']]]) {
+    for (const [lang, headings] of [['en', ['Summary', 'Environment', 'Steps to reproduce', 'Expected result', 'Actual result', 'Fix verification']], ['ko', ['요약', '환경', '재현 절차', '예상 결과', '실제 결과', '수정 검증']]]) {
       const variant = page.locator(`#card-text article[lang=${lang}]`);
       await expect(variant).toBeVisible();
       expect(await variant.locator('h4').allTextContents()).toEqual(headings);
-      expect(await variant.locator('dd[lang=en]').allTextContents()).toEqual(['Button', 'Change delivery address, Button']);
+      expect(await variant.locator('[data-evidence][lang=en]').allTextContents()).toEqual(['“Button”', '“Change delivery address, Button”']);
     }
     await expect(page.locator('#card-text')).not.toContainText(/Avery Example|Sample Street|\[.*redacted\]|RAW_NETWORK_CANARY/);
     await preview(page).fill('바뀐 초안');
@@ -176,7 +178,7 @@ test('pending SDK results cannot replace an edited and re-approved draft', async
   await expect(page.getByText('문구가 바뀌어 이전 제안을 사용하지 않았습니다.')).toBeVisible();
   await expect(page.locator('#proposal')).toBeHidden();
   await makeCard(page).click();
-  await expect(page.locator('#card-text article[lang=ko]')).toContainText('카드에 표시할 수 있는 수정 전·후 낭독 문구가 모두 갖춰지지 않았습니다.');
+  await expect(page.locator('#card-text article[lang=ko]')).toContainText('수정 전·후 낭독이 모두 제공되지는 않았습니다.');
   await expect(page.locator('#card-text')).not.toContainText('새로 검토한 본문');
   await checkNetwork();
 });
@@ -217,7 +219,7 @@ for (const input of ['Korean sample', 'mixed source', 'mixed draft', 'unconfirme
     await consent(page).check();
     await makeCard(page).click();
     for (const lang of ['en', 'ko']) {
-      expect(await page.locator(`#card-text article[lang=${lang}] dd`).allTextContents()).toEqual(expected);
+      expect(await page.locator(`#card-text article[lang=${lang}] [data-evidence]`).allTextContents()).toEqual(expected.map(q => `“${q}”`));
     }
     await checkNetwork();
   });

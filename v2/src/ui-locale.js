@@ -1,9 +1,5 @@
 // UI language is presentation only. Never use it for a draft, consent snapshot,
 // model language, or outgoing request. Pages can opt in to #ko explicitly.
-const toggle = document.getElementById('ui-language');
-const staticText = [...document.querySelectorAll('[data-ko]')].map(node => [node, node.textContent]);
-const labels = [...document.querySelectorAll('[data-ko-label]')].map(node => [node, node.getAttribute('aria-label')]);
-const links = [...document.querySelectorAll('[data-locale-link]')].map(node => [node, node.getAttribute('href')]);
 const statuses = new Map();
 
 export const uiLanguage = () => document.documentElement.lang;
@@ -22,6 +18,10 @@ export function setStatus(node, message = null) {
 export const hasStatus = (node, message) => statuses.get(node) === message;
 
 export function initLocale(initial = location.hash === '#ko' ? 'ko' : 'en') {
+  const toggle = document.getElementById('ui-language');
+  const staticText = [...document.querySelectorAll('[data-ko]')].map(node => [node, node.textContent]);
+  const labels = [...document.querySelectorAll('[data-ko-label]')].map(node => [node, node.getAttribute('aria-label')]);
+  const links = [...document.querySelectorAll('[data-locale-link]')].map(node => [node, node.getAttribute('href')]);
   function render(locale) {
     const korean = locale === 'ko';
     document.documentElement.lang = locale;

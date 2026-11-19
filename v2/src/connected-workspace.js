@@ -1,4 +1,5 @@
-import { prepareConnected, renderConnectedCard, validateConnectedCard } from './connected-card.js';
+import { maskMetadata, metadataKeys, prepareTracker, sameMetadata, validateTracker } from './tracker-cloud.js';
+import { cardOutput, trackerModel } from './tracker-card.js';
 import { contentLanguage, setStatus, uiLanguage } from './ui-locale.js';
 
 const messages = {
@@ -6,7 +7,8 @@ const messages = {
   withdrawn: ["Cloud approval withdrawn. No result will be shown. A request that has already left cannot be recalled.", "클라우드 승인을 취소했습니다. 결과를 표시하지 않습니다. 이미 나간 요청은 회수할 수 없습니다."],
   pair: ["Enter the Before and After utterances on separate lines.", "수정 전과 수정 후 낭독을 각각 한 줄로 입력해 주세요."],
   privacy: ["The utterances appear to contain private information. Remove it from the draft or do not send it to the cloud.", "낭독 문구에 개인정보로 보이는 내용이 있습니다. 초안에서 제거하거나 클라우드에 보내지 마세요."],
-  length: ["The full outgoing text, including instructions, must be at most 1,000 characters. Shorten the utterances.", "전송 텍스트는 지시문을 포함해 최대 1,000자입니다. 낭독 문구를 줄여 주세요."],
+  metadata: ["Tracker details may contain private information. Apply pattern redaction or edit them, then review again.", "이슈 카드 정보에 개인정보가 있을 수 있습니다. 패턴 가림을 적용하거나 직접 편집한 후 다시 검토해 주세요."],
+  length: ["The full outgoing text, including metadata and instructions, must be at most 1,000 characters. Shorten the details or utterances.", "입력 정보와 지시문을 포함해 최대 1,000자입니다. 입력 정보나 낭독을 줄여 주세요."],
   approved: ["You approved this text. The request starts only when you press Send.", "이 문구를 승인했습니다. 전송 버튼을 눌러야 요청이 시작됩니다."],
   waiting: ["Waiting for Gemini to respond to the approved text.", "승인한 문구에 대해 Gemini 응답을 기다리고 있습니다."],
   success: ["Cloud card received. Review it below.", "클라우드 카드를 받았습니다. 아래에서 확인하세요."],
@@ -29,12 +31,18 @@ el('cloud-disabled').hidden = configured;
 let snapshot = null;
 let approved = null;
 let attempt = null;
+export const fields = () => Object.fromEntries(metadataKeys.map(key => [key, el(`tracker-${key}`).value]));
+export const outcome = () => el('tracker-outcome').value;
+export const sample = () => !el('real-info').hidden;
+export const safeFields = () => maskMetadata(fields(), original.value, draft.value);
+const output = cardOutput(el('connected-card'), el('connected-copy'), el('connected-copy-status'));
 
 const current = () => snapshot && snapshot.original === original.value && snapshot.draft === draft.value &&
+  sameMetadata(snapshot.fields, fields()) && snapshot.outcome === outcome() && snapshot.sample === sample() &&
   utterances.textContent === snapshot.utterances && outgoing.textContent === snapshot.instructions;
 const clearResult = () => {
   el('connected-result').hidden = true;
-  el('connected-card').replaceChildren();
+  output(null);
   el('connected-source').textContent = '';
 };
 
@@ -68,12 +76,12 @@ export function invalidateCloud() {
 el('cloud-preview-button').addEventListener('click', event => {
   if (!event.isTrusted || el('review').hidden) return;
   invalidateCloud();
-  const next = prepareConnected(original.value, draft.value);
+  const next = prepareTracker(original.value, draft.value, fields());
   if (next.error) {
     setStatus(status, messages[next.error]);
     return;
   }
-  snapshot = { ...next, original: original.value, draft: draft.value };
+  snapshot = { ...next, original: original.value, draft: draft.value, fields: fields(), outcome: outcome(), sample: sample() };
   // Headings are UI chrome; only the contents of these two blocks are sent.
   const quote = text => {
     const span = document.createElement('span');
@@ -136,9 +144,9 @@ send.addEventListener('click', event => {
         channel.postMessage({ type: 'grant', prompt: reviewed.prompt });
         setStatus(status, messages.waiting);
       } else if (data?.type === 'result' && active.phase === 'sent') {
-        const card = data.source === 'IN_CLOUD' && validateConnectedCard(data.card, reviewed.pair);
+        const card = data.source === 'IN_CLOUD' && validateTracker(data.card, reviewed);
         if (!card) return end(messages.failed);
-        renderConnectedCard(el('connected-card'), card);
+        output(trackerModel(reviewed.pair, reviewed.fields, { generated: card, outcome: reviewed.outcome, sample: reviewed.sample }));
         el('connected-source').textContent = 'Firebase AI Logic · Gemini Developer API · IN_CLOUD';
         el('connected-result').hidden = false;
         end(messages.success);

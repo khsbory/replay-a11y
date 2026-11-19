@@ -1,4 +1,4 @@
-import { parseConnectedCard, readGrantedPrompt } from './connected-card.js';
+import { parseTracker, readTrackerGrant } from './tracker-cloud.js';
 import { initLocale, setStatus } from './ui-locale.js';
 
 const messages = {
@@ -32,7 +32,7 @@ function startRelay(key) {
   let app;
   let appSdk;
   let ai;
-  let model;
+
   function finish(text, result) {
     if (phase === 'done') return;
     phase = 'done';
@@ -65,11 +65,7 @@ function startRelay(key) {
     setStatus(status, messages.checking);
     await check.getToken(attestation);
     signal.throwIfAborted();
-    const service = ai.getAI(app, { backend: new ai.GoogleAIBackend() });
-    model = ai.getGenerativeModel(service, {
-      mode: ai.InferenceMode.ONLY_IN_CLOUD,
-      inCloudParams: { model: __CLOUD_MODEL__, generationConfig: { responseMimeType: 'application/json' } },
-    });
+
     phase = 'waiting';
     channel.postMessage({ type: 'grant-request' });
   }
@@ -83,15 +79,29 @@ function startRelay(key) {
       } else if (data?.type === 'grant' && phase === 'waiting') {
         phase = 'generating';
         const prompt = data.prompt;
-        const pair = readGrantedPrompt(prompt);
-        if (!pair) return fail();
+        const approved = readTrackerGrant(prompt);
+        if (!approved) return fail();
         signal.throwIfAborted();
+        const { Schema } = ai;
+        const edition = () => Schema.object({ properties: {
+          summary: Schema.string(),
+          steps: Schema.array({ items: Schema.string(), minItems: 1, maxItems: 4 }),
+          ...(!approved.metadata.expected && { expected: Schema.string() }),
+        } });
+        const service = ai.getAI(app, { backend: new ai.GoogleAIBackend() });
+        const model = ai.getGenerativeModel(service, {
+          mode: ai.InferenceMode.ONLY_IN_CLOUD,
+          inCloudParams: { model: __CLOUD_MODEL__, generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: Schema.object({ properties: { en: edition(), ko: edition() } }),
+          } },
+        });
         setStatus(status, messages.waiting);
         const { response } = await model.generateContent(prompt, { signal, timeout: 25_000 });
         signal.throwIfAborted();
         if (response.inferenceSource !== ai.InferenceSource.IN_CLOUD || response.candidates?.length !== 1 || response.candidates[0].finishReason !== 'STOP') return fail();
         const text = response.text();
-        const card = parseConnectedCard(text, pair);
+        const card = parseTracker(text, approved);
         if (!card) return fail();
         finish(messages.success, { type: 'result', source: 'IN_CLOUD', card });
       }

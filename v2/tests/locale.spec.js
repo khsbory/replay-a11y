@@ -13,14 +13,14 @@ for (const locale of ['en', 'ko']) test(`keyboard and axe: ${locale} workspace, 
   if (locale === 'ko') await page.keyboard.press('Enter');
   await expect(html).toHaveAttribute('lang', locale);
   await audit();
-  for (const id of ['sample', 'sample-en']) {
+  for (const id of ['sample-real', 'sample', 'sample-en']) {
     await page.keyboard.press('Tab');
     await expect(page.locator(`#${id}`)).toBeFocused();
   }
   await page.keyboard.press('Enter');
   await expect(page.locator('#comparison')).toBeFocused();
   const draft = await page.locator('#draft').inputValue();
-  for (const id of ['suggest', 'draft', 'consent']) {
+  for (const id of ['suggest', 'draft', 'tracker-device', 'tracker-os', 'tracker-browser', 'tracker-reader', 'tracker-notes', 'tracker-expected', 'tracker-tested', 'tracker-outcome', 'tracker-mask', 'consent']) {
     await page.keyboard.press('Tab');
     await expect(page.locator(`#${id}`)).toBeFocused();
   }
@@ -33,7 +33,7 @@ for (const locale of ['en', 'ko']) test(`keyboard and axe: ${locale} workspace, 
   const firstHeading = page.getByRole('heading', { name: locale === 'en' ? 'Utterances that will be sent' : '전송할 낭독 문구', exact: true });
   await expect(firstHeading).toBeFocused();
   await expect(page.locator('#cloud-utterances')).toBeVisible();
-  const instructions = page.getByRole('heading', { name: locale === 'en' ? 'Instructions sent with them' : '함께 전송할 지시문', exact: true });
+  const instructions = page.getByRole('heading', { name: locale === 'en' ? 'Metadata and instructions sent with them' : '함께 전송할 정보와 지시문', exact: true });
   await expect(instructions).toBeVisible();
   const readPrompt = () => page.locator('#cloud-utterances, #cloud-outgoing').allTextContents().then(parts => parts.join(''));
   const prompt = await readPrompt();

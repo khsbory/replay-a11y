@@ -1,7 +1,9 @@
 import { DELIVERY_OBSERVATIONS, EN_SAMPLE, LIMIT, SAMPLE, applySuggestion, canUseEnglishModel, compare, makeReview, redact } from './core.js';
 import { suggestOnDevice } from './device.js';
-import { renderReport } from './report.js';
-import { invalidateCloud } from './connected-workspace.js';
+import { cardOutput, trackerModel } from './tracker-card.js';
+import { fields, invalidateCloud, outcome, safeFields, sample } from './connected-workspace.js';
+import { chromiumCase } from './chromium-case.js';
+import { sameMetadata, reviewedPair } from './tracker-cloud.js';
 import { contentLanguage, hasStatus, initLocale, setStatus } from './ui-locale.js';
 
 const messages = {
@@ -40,6 +42,10 @@ const suggest = el('suggest');
 const inputStatus = el('input-status');
 const reviewStatus = el('review-status');
 const review = makeReview();
+const localOutput = cardOutput(el('card-text'), el('card-copy'), el('card-copy-status'));
+const reviewText = () => draft.value.trim() && JSON.stringify([draft.value, fields(), outcome(), sample()]);
+const fieldStatus = el('tracker-status');
+const metadataWarning = ['Tracker details may contain private information. Edit them or apply pattern redaction, then review.', '이슈 카드 정보에 개인정보가 있을 수 있습니다. 직접 편집하거나 패턴 가림을 적용한 후 검토해 주세요.'];
 let generation = 0;
 let inputRevision = 0;
 let busy = false;
@@ -64,7 +70,7 @@ function resetSuggestions() {
 
 function hideCard() {
   el('card').hidden = true;
-  el('card-text').textContent = '';
+  localOutput(null);
 }
 
 function revoke() {
@@ -120,8 +126,23 @@ function prepare() {
   el('comparison').focus();
 }
 
-function loadSample(text, isEnglish) {
+function assignFields(values = {}) {
+  for (const key of Object.keys(fields())) el(`tracker-${key}`).value = values[key] ?? '';
+  setStatus(fieldStatus);
+}
+
+function clearSample() {
+  if (sample()) assignFields();
+  el('real-info').hidden = true;
+  el('tracker-outcome').value = '';
+}
+
+const realRecording = `Before: ${chromiumCase.pair.before}\nAfter: ${chromiumCase.pair.after}`;
+function loadSample(text, isEnglish, real = false) {
   inputRevision++;
+  clearSample();
+  assignFields(real ? chromiumCase.fields : {});
+  el('real-info').hidden = !real;
   english.checked = isEnglish;
   source.value = text;
   source.lang = contentLanguage(text);
@@ -129,9 +150,12 @@ function loadSample(text, isEnglish) {
 }
 el('sample').onclick = () => loadSample(SAMPLE, false);
 el('sample-en').onclick = () => loadSample(EN_SAMPLE, true);
+el('sample-real').onclick = () => loadSample(realRecording, true, true);
 el('prepare').onclick = () => { inputRevision++; prepare(); };
 function sourceChanged() {
   inputRevision++;
+  if (sample() && source.value !== realRecording) clearSample();
+  el('tracker-outcome').value = '';
   const hadConsent = invalidateSource();
   source.lang = contentLanguage(source.value);
   if (hadConsent) setStatus(inputStatus, messages.sourceRevoked);
@@ -143,6 +167,7 @@ file.onchange = async () => {
   const selected = file.files[0];
   file.value = '';
   if (!selected) return;
+  clearSample();
   const revision = ++inputRevision;
   invalidateSource();
   setStatus(el('input-status'), messages.reading);
@@ -161,15 +186,39 @@ file.onchange = async () => {
 };
 
 draft.oninput = () => {
+  el('tracker-outcome').value = '';
   invalidateCloud();
   if (revoke()) setStatus(reviewStatus, messages.draftRevoked);
   else if (!hasStatus(reviewStatus, messages.draftRevoked)) setStatus(reviewStatus);
   resetSuggestions();
   labelDraft();
 };
+function trackerChanged() {
+  invalidateCloud();
+  resetSuggestions();
+  if (revoke()) setStatus(reviewStatus, messages.draftRevoked);
+  setStatus(fieldStatus);
+}
+for (const key of Object.keys(fields())) el(`tracker-${key}`).oninput = () => {
+  el('tracker-outcome').value = '';
+  trackerChanged();
+};
+el('tracker-outcome').onchange = trackerChanged;
+el('tracker-mask').onclick = () => {
+  const clean = safeFields();
+  if (!sameMetadata(clean, fields())) {
+    trackerChanged();
+    el('tracker-outcome').value = '';
+    assignFields(clean);
+    setStatus(fieldStatus, ['Potential private details masked. Review the resulting fields.', '개인정보로 보이는 내용을 가렸습니다. 변경된 항목을 검토해 주세요.']);
+  } else setStatus(fieldStatus, ['No matching patterns found. Check these fields yourself before approving.', '일치하는 패턴이 없습니다. 승인 전에 직접 확인해 주세요.']);
+};
 consent.onchange = () => {
   hideCard();
-  if (consent.checked && review.approve(draft.value)) {
+  if (consent.checked && !sameMetadata(fields(), safeFields())) {
+    revoke();
+    setStatus(reviewStatus, metadataWarning);
+  } else if (consent.checked && review.approve(reviewText())) {
     make.disabled = false;
     setStatus(reviewStatus, messages.consented);
   } else {
@@ -178,18 +227,19 @@ consent.onchange = () => {
   }
 };
 make.onclick = () => {
-  const exact = consent.checked ? review.get(draft.value) : null;
+  const exact = consent.checked ? review.get(reviewText()) : null;
   if (exact === null) {
     if (document.activeElement === make) consent.focus();
     revoke();
     setStatus(reviewStatus, messages.cardError);
     return;
   }
-  const pair = compare(redact(exact, englishSource() ? 'en' : ''));
-  renderReport(el('card-text'), pair, {
+  const pair = reviewedPair(source.value, draft.value, fields());
+  localOutput(trackerModel(pair, fields(), {
+    outcome: outcome(), sample: sample(),
     delivery: (pair?.before === DELIVERY_OBSERVATIONS.before && pair.after === DELIVERY_OBSERVATIONS.after) ||
       (pair?.before === '버튼' && pair.after === '배송지 변경, 버튼'),
-  });
+  }));
   el('card').hidden = false;
   el('card-title').focus();
 };
@@ -248,6 +298,7 @@ suggest.onclick = async () => {
 el('apply').onclick = () => {
   if (!proposal || proposal.original !== draft.value) return;
   invalidateCloud();
+  el('tracker-outcome').value = '';
   draft.value = proposal.next;
   clearProposal();
   const hadConsent = revoke();

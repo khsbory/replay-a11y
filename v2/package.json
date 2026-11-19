@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
-    "test": "node --test tests/core.test.js && npm run build && npm run test:simulation && vite build --mode release-test && playwright test",
+    "test": "node --test tests/core.test.js tests/tracker.test.js && npm run build && npm run test:simulation && vite build --mode release-test && playwright test",
     "test:simulation": "node --permission --allow-fs-read=. --test --test-isolation=none tests/cloud.test.js"
   },
   "dependencies": {
