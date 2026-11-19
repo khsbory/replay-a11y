@@ -67,7 +67,10 @@ test('role-only to action name assesses observed impact without assuming a confi
     assert.doesNotMatch(prompt, /copy these impact, retest, fix values/);
     return prompt.replace(`Before: ${before}\nAfter: ${after}`, '');
   });
-  assert.equal(new Set(guidance).size, 1, 'use identical criteria and instructions in both languages');
+  assert.equal(guidance[0], guidance[2]);
+  assert.equal(guidance[1], guidance[3]);
+  assert.match(guidance[1], /The app supplies the quoted evidence/);
+  assert.match(guidance[0], /No need to repeat/);
 });
 
 test('missing, blank and role-plus-state evidence are not evidence of a missing name', () => {
@@ -82,8 +85,8 @@ test('missing, blank and role-plus-state evidence are not evidence of a missing 
 test('the naming suggestion must be conditional in both languages; accepted prose is not rewritten', () => {
   const pair = { before: '링크', after: '배송 정책, 링크' };
   const card = {
-    en: { ...pair, impact: 'The additional words identify the destination.', retest: ['Use identical reader settings.', 'Compare both full announcements.'], fix: 'If inspection confirms the accessible name is missing or unclear, use a descriptive name.' },
-    ko: { ...pair, impact: '추가 문구가 링크의 목적지를 알려 줍니다.', retest: ['같은 리더 설정을 사용합니다.', '두 전체 낭독을 비교합니다.'], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 목적지를 설명하는 이름을 붙입니다.' },
+    en: { ...pair, impact: 'The additional words identify the destination.', retest: ['Use identical reader settings.', 'Compare “링크” with “배송 정책, 링크”.'], fix: 'If inspection confirms the accessible name is missing or unclear, use a descriptive name.' },
+    ko: { ...pair, impact: '추가 문구가 링크의 목적지를 알려 줍니다.', retest: ['같은 리더 설정을 사용합니다.', '"링크"와 "배송 정책, 링크"를 비교합니다.'], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 목적지를 설명하는 이름을 붙입니다.' },
   };
   assert.equal(validateConnectedCard(card, pair), card);
   assert.deepEqual(parseConnectedCard(JSON.stringify([card]), pair), card);
@@ -91,6 +94,102 @@ test('the naming suggestion must be conditional in both languages; accepted pros
   for (const [lang, fix] of [['en', 'Add a descriptive name to the link.'], ['ko', '링크에 목적지를 설명하는 이름을 붙입니다.']]) {
     assert.equal(validateConnectedCard({ ...card, [lang]: { ...card[lang], fix } }, pair), null);
   }
+});
+
+function quotedNamingCard(pair) {
+  return {
+    en: { ...pair, impact: 'The added wording helps users identify the action.', retest: ['Keep the reader’s settings; don\'t activate it.', `Compare “${pair.before}” with “${pair.after}”.`], fix: 'If inspection confirms the accessible name is missing or unclear, give the control a descriptive name.' },
+    ko: { ...pair, impact: '추가 문구로 버튼의 기능을 알 수 있습니다.', retest: ['같은 리더 설정을 사용합니다.', `‘${pair.before}’과 ‘${pair.after}’를 비교합니다.`], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 기능을 설명하는 이름을 붙입니다.' },
+  };
+}
+
+test('correct observation fields do not excuse invalid quotations anywhere in either body', () => {
+  const pair = { before: '버튼', after: '배송지 변경, 버튼' };
+  const bad = [
+    ['en', 'retest', 'Compare "Button" with "Change delivery address, Button".'],
+    ['ko', 'retest', '“버튼”과 “배송지 변경”을 비교합니다.'],
+    ['en', 'retest', 'Compare “버튼" with “배송지 변경, 버튼”.'],
+    ['en', 'retest', 'Compare “버튼 and “배송지 변경, 버튼”.'],
+    ['en', 'retest', 'Compare “버튼” with “배송지 변경, 버튼.”'],
+    ['en', 'retest', 'Compare “버튼” with “배송지 변경, 버튼” and `Button`.'],
+    ['ko', 'impact', '「배송지 변경」은 버튼의 기능을 알려 줍니다.'],
+    ['en', 'impact', '“Change delivery address, Button” describes the action.'],
+    ['en', 'fix', 'If inspection confirms the accessible name is missing or unclear, use \'배송지 변경\'.'],
+  ];
+  for (const [lang, field, text] of bad) {
+    const card = quotedNamingCard(pair);
+    if (field === 'retest') card[lang].retest[1] = text;
+    else card[lang][field] = text;
+    assert.equal(parseConnectedCard(JSON.stringify(card), pair), null, text);
+  }
+});
+
+test('Korean evidence may be referred to indirectly in generated retest because the app supplies the exact quotes', () => {
+  const pair = { before: '버튼', after: '배송지 변경, 버튼' };
+  const card = quotedNamingCard(pair);
+  card.en.retest[1] = 'Compare the earlier announcement with what you hear in the updated version.';
+  assert.equal(validateConnectedCard(card, pair), card);
+  card.en.retest[1] = 'Compare “버튼 / 배송지 변경, 버튼” with your recording.';
+  assert.equal(validateConnectedCard(card, pair), null);
+});
+
+test('explicit references are accepted without rewriting generated prose', () => {
+  const pair = { before: '버튼', after: '배송지 변경, 버튼' };
+  const card = quotedNamingCard(pair);
+  card.en.retest[1] = 'Focus the same control and compare {{before}} with {{after}} without activating it.';
+  card.ko.retest[1] = '같은 컨트롤에 초점을 맞춰 수정 전후의 낭독을 비교합니다.';
+  assert.deepEqual(parseConnectedCard(JSON.stringify(card), pair), card);
+  for (const replacement of ['{{Before}}', '{{unknown}}', '"{{before}}"', '{{before}', '“Button”']) {
+    const changed = structuredClone(card);
+    changed.en.retest[1] = changed.en.retest[1].replace('{{before}}', replacement);
+    assert.equal(validateConnectedCard(changed, pair), null, replacement);
+  }
+});
+
+test('English naming steps need no repeated literals, but bare quotes and altered literal quotes still fail', () => {
+  const pair = { before: 'Button', after: 'Change delivery address, Button' };
+  const card = quotedNamingCard(pair);
+  card.en.retest = ['Focus the same control using identical screen reader settings.', 'Compare the before and after announcements without activating it.'];
+  card.ko.retest = ['같은 스크린 리더 설정으로 같은 컨트롤에 초점을 맞춥니다.', '컨트롤을 실행하지 않고 전후 낭독을 비교합니다.'];
+  assert.equal(validateConnectedCard(card, pair), card);
+  for (const [lang, field, text] of [
+    ['en', 'retest', '"Change delivery address, Button"'],
+    ['en', 'retest', '{{before}} / {{after}}'],
+    ['en', 'retest', 'Expected: {{after}}.'],
+    ['ko', 'impact', '“Change delivery address,Button”은 동작을 설명합니다.'],
+    ['en', 'impact', '“button” does not describe the action.'],
+    ['en', 'fix', 'If inspection confirms the accessible name is missing or unclear, use “배송지 변경, 버튼”.'],
+  ]) {
+    const changed = structuredClone(card);
+    if (field === 'retest') changed[lang].retest[1] = text;
+    else changed[lang][field] = text;
+    assert.equal(validateConnectedCard(changed, pair), null, text);
+  }
+});
+
+test('valid quotes keep original punctuation, embedded quotes and case; contractions and possessives are prose', () => {
+  for (const pair of [
+    { before: '버튼', after: '배송지 변경, 버튼' },
+    { before: 'Button!', after: 'Read "Today’s news", Button.' },
+  ]) {
+    const card = quotedNamingCard(pair);
+    card.en.retest = ['Use the readers\' original settings and don’t activate it.', `Listen for "${pair.before}".`, `Then listen for "${pair.after}".`];
+    card.en.impact = `The move from '${pair.before}' to '${pair.after}' identifies the action.`;
+    assert.equal(validateConnectedCard(card, pair), card);
+    if (pair.before === 'Button!') {
+      card.en.retest[1] = 'Listen for "button!".';
+      assert.equal(validateConnectedCard(card, pair), null);
+    }
+  }
+});
+
+test('unclear comparisons also reject nonliteral quotations but need not quote both in retest', () => {
+  const pair = { before: 'Settings panel.', after: 'Options panel?' };
+  const card = quotedNamingCard(pair);
+  card.en.retest[1] = 'Listen to “Options panel?” again.';
+  assert.equal(validateConnectedCard(card, pair), card);
+  card.en.retest[1] = 'Listen to “Options panel” again.';
+  assert.equal(validateConnectedCard(card, pair), null);
 });
 
 test('the exact outgoing text starts with the quotes and counts every character of the full prompt', () => {

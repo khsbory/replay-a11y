@@ -4,10 +4,11 @@ import AxeBuilder from '@axe-core/playwright';
 const raw = 'Before: Collapsed, button\nAfter: Expanded, button\nCustomer name: Avery Example\nAddress: 101 Sample Street\nUNAPPROVED_CANARY';
 const edited = 'Before: Button\nAfter: Filters, button\nUNAPPROVED_DRAFT';
 const quotes = { before: 'Button', after: 'Filters, button' };
+const koreanQuotes = { before: '버튼', after: '배송지 변경, 버튼' };
 const config = { projectId: 'replay-demo-invalid', appId: '1:000000000000:web:0000000000000000000000', apiKey: `AIza${'x'.repeat(35)}` };
 const card = {
-  en: { ...quotes, impact: '<b>A descriptive label helps users identify the control.</b>', retest: ['Focus Filters with the same screen reader.', 'Compare the name and role in each version.'], fix: 'If inspection confirms the accessible name is missing or unclear, use a descriptive name.' },
-  ko: { ...quotes, impact: '버튼 이름을 들으면 기능을 알 수 있습니다.', retest: ['같은 스크린리더에서 필터를 실행합니다.', '이름과 역할이 읽히는지 비교합니다.'], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 의미를 설명하는 이름을 붙입니다.' },
+  en: { ...quotes, impact: '<b>A descriptive label helps users identify the control.</b>', retest: ['Focus the same control with the same screen reader.', 'Compare {{before}} with {{after}}.'], fix: 'If inspection confirms the accessible name is missing or unclear, use a descriptive name.' },
+  ko: { ...quotes, impact: '버튼 이름을 들으면 기능을 알 수 있습니다.', retest: ['같은 스크린 리더로 같은 컨트롤에 초점을 둡니다.', '수정 전후의 낭독을 비교합니다.'], fix: '검사 결과 접근 가능한 이름이 없거나 불분명하다면, 의미를 설명하는 이름을 붙입니다.' },
 };
 
 async function setup(page, baseURL, variant = 'success', locale = 'ko') {
@@ -35,7 +36,14 @@ async function setup(page, baseURL, variant = 'success', locale = 'ko') {
       if (variant === 'late' || variant.startsWith('locale-')) await gate.promise;
       if (variant === 'http' || variant === 'locale-failure') return route.fulfill({ status: 503, json: { error: { message: 'HIDDEN_ERROR' } } });
       const result = structuredClone(card);
+      if (variant === 'korean-evidence') {
+        Object.assign(result.en, koreanQuotes, { retest: ['Listen to the original announcement.', 'Compare it with the updated announcement.'] });
+        Object.assign(result.ko, koreanQuotes);
+      }
       if (variant === 'altered') result.ko.before += '.';
+      if (variant === 'bare-retest') result.en.retest = ['"Button"', '"Filters, button"'];
+      if (variant === 'case-body') result.en.impact = 'Only “button” is announced before.';
+      if (variant === 'translated-body') result.ko.retest[1] = '“버튼”과 “필터, 버튼”을 비교합니다.';
       if (variant === 'incomplete') delete result.en.fix;
       const text = variant === 'malformed' ? 'not json' : JSON.stringify(result);
       return route.fulfill({ json: { candidates: [{ content: { role: 'model', parts: [{ text }] }, finishReason: 'STOP' }] } }).catch(() => {});
@@ -46,7 +54,7 @@ async function setup(page, baseURL, variant = 'success', locale = 'ko') {
   await page.goto(locale === 'ko' ? '/#ko' : '/');
   await page.locator('#source').fill(raw);
   await page.locator('#prepare').click();
-  await page.locator('#draft').fill(edited);
+  await page.locator('#draft').fill(variant === 'korean-evidence' ? `Before: ${koreanQuotes.before}\nAfter: ${koreanQuotes.after}` : edited);
   await page.locator('#cloud-preview-button').click({ timeout: 3500 });
   return { gate, reads, posts, other, exchanges };
 }
@@ -83,6 +91,10 @@ test('connected card uses the edited comparison; approval alone stays offline', 
   expect(network.exchanges).toEqual([{ recaptcha_enterprise_token: 'fake-recaptcha' }]);
   expect(network.other).toEqual([]);
   for (const lang of ['en', 'ko']) expect(await page.locator(`#connected-card article[lang=${lang}] dd`).allTextContents()).toEqual(Object.values(quotes));
+  await expect(page.locator('#connected-card article[lang=en] [data-retest-setup]')).toHaveText('Setup: Use the same screen reader and settings in both versions. Focus the same control without activating it.');
+  const enRetest = page.locator('#connected-card article[lang=en] li');
+  expect(await enRetest.allTextContents()).toEqual([card.en.retest[0], 'Compare “Button” with “Filters, button”.']);
+  expect(await enRetest.locator('span[lang=en]').allTextContents()).toEqual(['“Button”', '“Filters, button”']);
   await expect(page.locator('#connected-card b')).toHaveCount(0);
   await expect(page.locator('#connected-card')).toContainText(card.en.impact);
 });
@@ -95,6 +107,16 @@ test('mismatched Hosting app fails closed before attestation', async ({ page, ba
   await expect(page.locator('#cloud-approve')).not.toBeChecked();
   expect(reads).toHaveLength(1);
   expect([posts, exchanges, other]).toEqual([[], [], []]);
+});
+
+test('English retest renders separate verbatim Korean evidence alongside untouched generated steps', async ({ page, baseURL }) => {
+  await setup(page, baseURL, 'korean-evidence');
+  await send(page);
+  const english = page.locator('#connected-card article[lang=en]');
+  const evidence = english.locator('[data-retest-evidence]');
+  await expect(evidence).toBeVisible();
+  expect(await evidence.locator('span[lang=ko]').allTextContents()).toEqual(['“버튼”', '“배송지 변경, 버튼”']);
+  expect(await english.locator('li').allTextContents()).toEqual(['Listen to the original announcement.', 'Compare it with the updated announcement.']);
 });
 
 test('preview refuses known private content in a selected quote', async ({ page, baseURL }) => {
@@ -133,7 +155,7 @@ for (const [variant, change, expectedPosts] of [
   expect(posts).toHaveLength(expectedPosts);
 });
 
-for (const variant of ['altered', 'incomplete', 'malformed', 'http']) test(`provider ${variant} consumes approval and never renders a card`, async ({ page, baseURL }) => {
+for (const variant of ['altered', 'translated-body', 'bare-retest', 'case-body', 'incomplete', 'malformed', 'http']) test(`provider ${variant} consumes approval and never renders a card`, async ({ page, baseURL }) => {
   const { posts } = await setup(page, baseURL, variant);
   await send(page);
   await expect(page.locator('#connected-status')).toContainText('클라우드 카드를 만들지 못했습니다');
