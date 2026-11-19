@@ -44,6 +44,10 @@ const neutralText = `For insufficient evidence copy these impact, retest, fix va
 const spokenRole = new Map([['button', 'button'], ['버튼', 'button'], ['link', 'link'], ['링크', 'link']]);
 const stateWords = new Set([...stateGroups.flat(), 'disabled', 'enabled', 'pressed', 'not pressed', '사용 안 함', '사용 가능', '눌림', '눌리지 않음']);
 const spokenPart = value => normalize(value).replace(/[.!?。]+$/u, '').trim();
+export const spokenLabels = value => value.split(/[,，]/u).map(part => part.trim()).filter(part => {
+  const normalized = spokenPart(part);
+  return /\p{L}/u.test(normalized) && !spokenRole.has(normalized) && !stateWords.has(normalized);
+});
 const namingCondition = {
   en: 'If inspection confirms the accessible name is missing or unclear,',
   ko: '검사 결과 접근 가능한 이름이 없거나 불분명하다면,',
@@ -115,14 +119,15 @@ const insideWord = (text, i) => latin.test(text[i - 1] ?? '') && latin.test(text
 
 // Parse references and literal quotes together so a token inside an exact
 // approved literal remains data. Never normalize or repair an invalid literal.
-export function scanProse(text, pair) {
+export function scanProse(text, pair, expected) {
   const approved = [pair.before, pair.after].sort((a, b) => b.length - a.length);
+  const keys = expected ? ['before', 'after', 'expected'] : ['before', 'after'];
   const references = [];
   let prose = '';
   for (let i = 0; i < text.length; i++) {
     const mark = text[i];
     if (mark === '{' || mark === '}') {
-      const key = ['before', 'after'].find(key => text.startsWith(`{{${key}}}`, i));
+      const key = keys.find(key => text.startsWith(`{{${key}}}`, i));
       if (!key) return null;
       const end = i + key.length + 4;
       references.push({ start: i, end, key });

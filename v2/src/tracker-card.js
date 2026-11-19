@@ -1,7 +1,7 @@
 import { contentLanguage, setStatus } from './ui-locale.js';
 import { evidenceClass, neutralAssessment, normalize, scanProse } from './connected-card.js';
 import { chromiumCase } from './chromium-case.js';
-import { sameMetadata } from './tracker-cloud.js';
+import { sameMetadata, titleExpectation } from './tracker-cloud.js';
 
 const labels = {
   en: {
@@ -34,11 +34,11 @@ const fieldKeys = ['device', 'os', 'browser', 'reader'];
 const hasValue = value => value?.trim() && value !== '[Private detail redacted]';
 const literal = (text, lang = contentLanguage(text)) => ({ text, lang });
 const quote = text => literal(`“${text}”`, contentLanguage(text));
-const prose = (text, pair) => {
+const prose = (text, pair, expected) => {
   let start = 0;
   const parts = [];
-  for (const ref of scanProse(text, pair).references) {
-    parts.push(text.slice(start, ref.start), quote(pair[ref.key]));
+  for (const ref of scanProse(text, pair, expected).references) {
+    parts.push(text.slice(start, ref.start), quote(ref.key === 'expected' ? expected : pair[ref.key]));
     start = ref.end;
   }
   return [...parts, text.slice(start)];
@@ -62,7 +62,7 @@ export function trackerModel(pair, fields, { generated, outcome, sample = false,
     const verification = resolved ? l.resolved(version) : persists ? l.persists(version) : version ? l.pending(version) : l.unversioned;
     const deliverySteps = lang === 'en' ? ['Focus the delivery address control with a screen reader. Listen without activating it.'] : ['스크린 리더로 배송지 변경 컨트롤에 초점을 맞추고 실행하지 않은 채 낭독을 듣습니다.'];
     return { lang, title: l.title, sections: [
-      [l.headings[0], [ai ? prose(ai.summary, pair) : [summary], ...(fields.notes?.trim() ? [[`${l.notes}: `, value('notes')]] : []),
+      [l.headings[0], [ai && !neutral ? prose(ai.summary, pair, titleExpectation(fields)) : [summary], ...(fields.notes?.trim() ? [[`${l.notes}: `, value('notes')]] : []),
         ...(real ? [[{ text: 'Chromium 542033685', href: chromiumCase.source }]] : [])]],
       [l.headings[1], fieldKeys.map((key, i) => [`${l.env[i]}: `, value(key)])],
       [l.headings[2], [], ai ? ai.steps.map(step => prose(step, pair)) : (sampleText?.steps ?? (delivery ? deliverySteps : l.steps)).map(step => [step])],
