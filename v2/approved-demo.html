@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self'; frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; connect-src 'self' https://www.google.com/recaptcha/ https://content-firebaseappcheck.googleapis.com/v1/projects/replay-demo-invalid/apps/1:000000000000:web:0000000000000000000000:exchangeRecaptchaEnterpriseToken https://firebasevertexai.googleapis.com/v1beta/projects/replay-demo-invalid/models/gemini-3.5-flash-lite:generateContent; form-action 'none'; base-uri 'none'; object-src 'none'">
+  <title>Replay A11y · Approved cloud demo</title>
+  <link rel="stylesheet" href="/src/style.css">
+  <script type="module" src="/src/approved-demo.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <p class="tag">Replay A11y · Synthetic sample only</p>
+    <h1>Approved cloud demo</h1>
+    <p>Compare the same delivery button before and after it gets an accessible name. This separate page cannot receive your local editor, file, or recording.</p>
+    <nav aria-label="Demo pages">
+      <ul>
+        <li><a href="/before.html" rel="noreferrer">Before: unlabeled delivery button</a></li>
+        <li><a href="/after.html" rel="noreferrer">After: named delivery button</a></li>
+        <li><a href="/" rel="noreferrer">Back to the local-only workspace</a></li>
+      </ul>
+    </nav>
+  </header>
+  <section aria-labelledby="sample-title">
+    <h2 id="sample-title">1. Select the synthetic comparison</h2>
+    <button id="select-figure" type="button" aria-controls="preview" aria-expanded="false">Select approved synthetic sample</button>
+    <div id="preview" hidden>
+      <h2 id="preview-title" tabindex="-1">2. Review the exact outgoing prompt</h2>
+      <pre id="outgoing-preview"></pre>
+      <p>This is the complete prompt sent to Gemini through Firebase AI Logic. After you press Send, Google reCAPTCHA checks the browser and the SDK sends Firebase routing metadata and an App Check token. The request includes a JSON schema limiting the answer to one of two recommendation codes.</p>
+      <label class="checkbox"><input id="approve" type="checkbox" autocomplete="off"> I approve sending exactly this synthetic prompt to Gemini in the cloud.</label>
+      <button id="send" type="button" disabled>Send approved sample to Gemini</button>
+    </div>
+    <p id="cloud-status" role="status" aria-atomic="true"></p>
+  </section>
+  <section id="cloud-result" aria-labelledby="result-title" hidden>
+    <h2 id="result-title" tabindex="-1">3. Bilingual issue card with a cloud recommendation</h2>
+    <p id="inference-source"></p>
+    <div id="card-text"></div>
+    <p>Gemini selects a possible fix. The comparison quotes and bilingual wording are fixed; review the suggestion before using it.</p>
+  </section>
+  <details id="verified-fallback">
+    <summary>View the saved bilingual example card</summary>
+    <p>A bilingual illustration using fixed synthetic data and preset wording. This is not a model response.</p>
+    <div id="verified-card"></div>
+  </details>
+  <noscript><p>JavaScript is required to preview and send the synthetic cloud sample.</p></noscript>
+</main>
+</body>
+</html>
