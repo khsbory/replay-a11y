@@ -22,7 +22,7 @@ Pattern checks can block recognized private details or masking markers in the cl
 
 ## Accomplishments
 
-We built two practice pages for the same delivery button: one has no accessible name, and the other is named “Change delivery address.” On fictional data, we verified an English on-device suggestion that found an extra name to mask. We also verified the hosted connected flow: approval alone made no cloud request, Send used the reviewed prompt, and Gemini returned both versions with the approved excerpts intact.
+We built two practice pages for the same delivery button: one has no accessible name, and the other is named “Change delivery address.” Those are verified accessible names, not recorded mobile speech. On fictional data, we verified an English on-device suggestion that found an extra name to mask. We also verified the hosted connected flow: approval alone made no cloud request, Send used the reviewed prompt, and Gemini returned both versions with the approved excerpts intact.
 
 ## What we learned
 
@@ -41,9 +41,15 @@ HTML, CSS, JavaScript, Vite, Chrome Prompt API (Gemini Nano), Firebase AI Logic,
 
 ## How to test
 
-Open the [hosted workspace](https://replay-a11y-hybrid-2026.web.app/). Use fictional text; no personal log or local model is needed for these steps.
+Judges: start with the built-in English delivery-button sample in the [hosted workspace](https://replay-a11y-hybrid-2026.web.app/) on desktop Chrome. It uses fictional text; don't use a personal log.
 
-1. **Compare the accessible names.** Open [Before: unlabeled delivery button](https://replay-a11y-hybrid-2026.web.app/before.html) and [After: named delivery button](https://replay-a11y-hybrid-2026.web.app/after.html). Move focus to the delivery button on each page. The first has no accessible name; the second is named “Change delivery address.” Exact spoken wording depends on the screen reader and its settings.
-2. **Review a Korean draft.** Click **합성 샘플 불러오기** (load the synthetic sample). The sample prepares a pattern-masked draft. In **카드에 들어갈 정확한 문구** (the exact draft text), review and manually remove any private details. If you want a local card, check **현재 문구를 이 기기에서 카드로 만드는 데 동의합니다.** and click **이 기기에서 카드 만들기**. Editing the draft clears that approval and hides the card.
-3. **Try the connected cloud card from the same draft.** Keep one `수정 전:` line and one `수정 후:` line, with no private details or masking placeholders in either excerpt. Click **클라우드에 보낼 정확한 문구 미리보기** and review the instructions and both excerpts in the full preview. Only if you want Gemini to receive that exact text, check **개인정보가 없음을 확인했고, 위 문구 그대로 Gemini 클라우드에 보내는 데 동의합니다.** Then click **승인한 문구를 Gemini에 전송 (새 탭)** separately. Keep the relay tab open until it reports completion, then return to the workspace to read the English and Korean card and compare both sets of quotes with the preview. You don't need to make or approve a local card first.
-4. **Optional fixed-sample alternative.** The separate [Approved cloud demo](https://replay-a11y-hybrid-2026.web.app/approved-demo.html) never receives your workspace draft. It uses a fixed synthetic prompt with its own approval and Send. You can open **View the saved bilingual example card** without sending anything. It is a labeled example, not a fresh Gemini response.
+1. Click **영어 합성 샘플 불러오기**. In **2. 수정 전후 비교**, verify `Before: Button` and `After: Change delivery address, Button`.
+2. In **카드에 들어갈 정확한 문구**, review the pattern-masked draft. If your Chrome profile supports the optional on-device model, click **기기 내 모델 제안 받기**, review the proposal to mask the fictional name `Avery Example`, then click **추가 가림 제안 적용** if it leaves both excerpts unchanged. If the model isn't available, skip it and edit the draft by hand as needed. To make the optional local card, check **현재 문구를 이 기기에서 카드로 만드는 데 동의합니다.** and click **이 기기에서 카드 만들기**. It doesn't send anything or approve a cloud request.
+3. From the same draft, open **클라우드에 보낼 정확한 문구 미리보기**. Under **Gemini로 보낼 전체 텍스트 (최대 1,000자)**, check the instructions and the two exact English excerpts. Keep one nonempty `Before:` line and one nonempty `After:` line, with no private details or masking markers in either excerpt. Only if you want to send the reviewed prompt, check **개인정보가 없음을 확인했고, 위 문구 그대로 Gemini 클라우드에 보내는 데 동의합니다.** Checking the box doesn't send anything.
+4. Click **승인한 문구를 Gemini에 전송 (새 탭)** separately. Leave the **Gemini relay** tab open until it says **Cloud card received. Return to the workspace.** Choose **Close relay tab** and find **Gemini가 작성한 이중 언어 이슈 카드**. Confirm the **English** and **한국어** sections both retain the exact approved English quotes. Neither the on-device suggestion nor the local card is required.
+
+**Korean alternative:** Choose **합성 샘플 불러오기** for the Korean sample. Use pattern masking and manual editing, without the on-device model, then follow the same preview and approval steps with `수정 전:` and `수정 후:` lines.
+
+**Practice pages:** The [before page](https://replay-a11y-hybrid-2026.web.app/before.html) has an unnamed delivery button; the [after page](https://replay-a11y-hybrid-2026.web.app/after.html) names it “Change delivery address.” Focus the button on each page to compare. Exact speech depends on the screen reader and its settings.
+
+**Fixed-sample demo (optional):** The separate [Approved cloud demo](https://replay-a11y-hybrid-2026.web.app/approved-demo.html) never receives your workspace draft. It has a fixed synthetic prompt with its own approval and Send. **View the saved bilingual example card** requires no send; it shows a labeled example, not a fresh Gemini response.

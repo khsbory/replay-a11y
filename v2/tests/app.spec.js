@@ -41,7 +41,7 @@ test('English synthetic TalkBack reaches Firebase with English options and maske
   await page.goto('/');
   await englishSample(page).click({ timeout: 2000 });
   await expect(page.locator('#before')).toHaveText('Button');
-  await expect(page.locator('#after')).toHaveText('Change shipping address, button');
+  await expect(page.locator('#after')).toHaveText('Change delivery address, Button');
   await suggest(page).click();
   await expect(page.locator('#proposal-text')).toContainText('Customer name: [Additional redaction]');
   const calls = await page.evaluate(() => window.calls);
@@ -53,6 +53,24 @@ test('English synthetic TalkBack reaches Firebase with English options and maske
   const prompt = JSON.stringify(calls.at(-1)[1]);
   expect(prompt).not.toMatch(/\p{Script=Hangul}|example\.invalid|555-0100|\$12\.30|101 Sample Street/u);
   for (const kind of ['Phone', 'Email', 'Amount', 'Address']) expect(prompt).toContain(`[${kind} redacted]`);
+  await page.locator('#apply').click();
+  await page.locator('#cloud-preview-button').click();
+  const outgoing = await page.locator('#cloud-outgoing').textContent();
+  expect(outgoing).toMatch(/\n\nBefore: Button\nAfter: Change delivery address, Button$/);
+  expect(outgoing).not.toMatch(/Avery Example|Sample Street|\[.*redacted\]|Additional redaction/);
+  await expect(page.locator('#cloud-send')).toBeDisabled();
+  await checkNetwork();
+});
+
+test('local card does not diagnose an ordinary toggle', async ({ page }) => {
+  const checkNetwork = await observe(page);
+  await page.goto('/');
+  await page.locator('#source').fill('Before: Notifications, switch, off\nAfter: Notifications, switch, on');
+  await page.locator('#prepare').click();
+  await consent(page).check();
+  await makeCard(page).click();
+  await expect(page.locator('#card-text article[lang=en]')).toContainText('Insufficient evidence');
+  await expect(page.locator('#card-text article[lang=ko]')).toContainText('근거가 부족합니다');
   await checkNetwork();
 });
 
@@ -78,7 +96,7 @@ for (const provider of ['missing', 'unavailable']) {
     await page.keyboard.press('Enter');
     await expect(page.getByRole('status').filter({ hasText: '기기 내 모델을 사용할 수 없습니다' })).toBeVisible();
     expect(await page.evaluate(() => window.providerCalls)).toEqual(provider === 'missing' ? [] : ['availability']);
-    const exact = 'Before: Button\nAfter: Change shipping address, button\nCustomer name: Avery Example\nAddress: 101 Sample Street\nName: [Name redacted]\n<b>RAW_NETWORK_CANARY</b>\n';
+    const exact = 'Before: Button\nAfter: Change delivery address, Button\nCustomer name: Avery Example\nAddress: 101 Sample Street\nName: [Name redacted]\n<b>RAW_NETWORK_CANARY</b>\n';
     await preview(page).fill(exact);
     await expect(makeCard(page)).toBeDisabled();
     await consent(page).check();
@@ -98,7 +116,7 @@ for (const provider of ['missing', 'unavailable']) {
       const variant = page.locator(`#card-text article[lang=${lang}]`);
       await expect(variant).toBeVisible();
       expect(await variant.locator('h4').allTextContents()).toEqual(headings);
-      expect(await variant.locator('dd[lang=en]').allTextContents()).toEqual(['Button', 'Change shipping address, button']);
+      expect(await variant.locator('dd[lang=en]').allTextContents()).toEqual(['Button', 'Change delivery address, Button']);
     }
     await expect(page.locator('#card-text')).not.toContainText(/Avery Example|Sample Street|\[.*redacted\]|RAW_NETWORK_CANARY/);
     await preview(page).fill('바뀐 초안');

@@ -1,5 +1,7 @@
+import { neutralAssessment } from './connected-card.js';
+
 // Only reviewed utterances are inserted as text. All narrative is vetted copy.
-export const DELIVERY_OBSERVATIONS = Object.freeze({ before: 'Button', after: 'Change delivery address, Button' });
+export { DELIVERY_OBSERVATIONS } from './core.js';
 export const CLOUD_FIXES = Object.freeze(['visible_label', 'programmatic_name']);
 
 const copy = {
@@ -69,6 +71,7 @@ export function renderReport(target, observations, { delivery = false, fix = 'ge
   const canQuote = observations && [observations.before, observations.after].every(
     text => !/\[[^\]\r\n]*(?:redact(?:ed|ion)|가림)[^\]\r\n]*\]/iu.test(text),
   );
+  const assessment = canQuote && neutralAssessment(observations);
   for (const [lang, t] of Object.entries(copy)) {
     const article = add(fragment, 'article', undefined, lang);
     article.className = 'report-variant';
@@ -85,13 +88,13 @@ export function renderReport(target, observations, { delivery = false, fix = 'ge
       add(article, 'p', t.missing);
     }
     add(article, 'h4', t.impact);
-    add(article, 'p', t.impacts[canQuote ? delivery ? 'delivery' : 'generic' : 'missing']);
+    add(article, 'p', assessment ? assessment[lang].impact : t.impacts[canQuote ? delivery ? 'delivery' : 'generic' : 'missing']);
     add(article, 'h4', t.retest);
     const steps = add(article, 'ol');
-    for (const step of [t.steps[0], delivery ? t.deliveryStep : t.steps[1], t.steps[2]]) add(steps, 'li', step);
+    for (const step of assessment ? assessment[lang].retest : [t.steps[0], delivery ? t.deliveryStep : t.steps[1], t.steps[2]]) add(steps, 'li', step);
     add(article, 'h4', t.fix);
     add(article, 'p', t.uncertainty);
-    add(article, 'p', t.fixes[fix]);
+    add(article, 'p', assessment ? assessment[lang].fix : t.fixes[fix]);
   }
   target.replaceChildren(fragment);
 }

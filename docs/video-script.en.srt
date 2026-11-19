@@ -18,8 +18,8 @@ Before the fix, the button has no name.
 
 5
 00:00:27,500 --> 00:00:31,500
-After the fix, the name tells you
-it changes the delivery address.
+The button is now named
+“Change delivery address”.
 
 6
 00:00:32,000 --> 00:00:40,500
@@ -27,27 +27,26 @@ it changes the delivery address.
 
 7
 00:00:41,500 --> 00:00:46,000
-We'll use a synthetic Korean transcript.
+This take imports synthetic English text.
 
 8
 00:00:46,500 --> 00:00:53,000
-Label the before and after excerpts
-in one text file, then open it.
+One UTF-8 file supplies both excerpts.
+The app shows them as written.
 
 9
 00:00:53,500 --> 00:01:00,000
-Rules mask the phone number.
-The app shows both excerpts.
+Rules mask the fictional phone number
+in the draft.
 
 10
 00:01:01,500 --> 00:01:07,000
-Eligible English text can use
-optional on-device redaction.
+Now we load the built-in English sample.
 
 11
 00:01:07,500 --> 00:01:12,000
-We request a suggestion
-on a separate English sample.
+We ask the on-device model
+for a redaction suggestion.
 
 12
 00:01:16,000 --> 00:01:20,500
@@ -55,32 +54,32 @@ The app verified an on-device response.
 
 13
 00:01:21,000 --> 00:01:26,500
-It suggests masking the fictional name
-without changing either excerpt.
+We apply the mask to the fictional name
+and keep both excerpts unchanged.
 
 14
 00:01:27,500 --> 00:01:33,000
-Korean redaction uses no model.
-We remove the remaining name by hand.
+We give separate consent for a local
+card from the same redacted draft.
 
 15
 00:01:34,000 --> 00:01:40,000
-The reviewed text can become
-a card on this device.
+This device builds a card
+with the two reviewed excerpts.
 
 16
 00:01:40,500 --> 00:01:45,000
-No upload is needed for this card.
+Nothing was sent to make this card.
 
 17
 00:01:46,500 --> 00:01:53,000
-In the same workspace, the cloud option
-takes only the before and after quotes.
+The cloud preview takes only the two
+excerpts from the same draft.
 
 18
 00:01:53,500 --> 00:02:00,000
-Review the full prompt with instructions.
-The limit is 1,000 UTF-16 code units.
+The full prompt shows the instructions
+and both English quotes.
 
 19
 00:02:01,000 --> 00:02:08,000
@@ -89,13 +88,13 @@ Then click Send separately.
 
 20
 00:02:09,000 --> 00:02:15,500
-An isolated tab verifies the browser,
-then sends the approved text.
+An isolated tab sends the approved text
+and waits for the response.
 
 21
 00:02:17,500 --> 00:02:22,500
-Back in the workspace, we see
-the cloud result in both languages.
+The relay confirms receipt.
+We return to the workspace.
 
 22
 00:02:23,000 --> 00:02:29,500
@@ -104,8 +103,8 @@ and a possible fix in both languages.
 
 23
 00:02:30,000 --> 00:02:35,000
-Both cards keep the approved quotes
-exactly as written.
+Both cards keep the approved English
+quotes exactly as written.
 
 24
 00:02:35,500 --> 00:02:39,500

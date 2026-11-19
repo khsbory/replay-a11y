@@ -35,3 +35,31 @@ test('consent is tied to exact bytes and explicitly revoked even if the same tex
   review.revoke();
   assert.equal(review.get(exact), null);
 });
+import { prepareConnected, readGrantedPrompt, validateConnectedCard } from '../src/connected-card.js';
+
+test('identical evidence and ordinary state transitions require a non-defect card in both languages', () => {
+  for (const pair of [
+    { before: 'Button', after: ' button ' },
+    { before: 'Notifications, switch, off', after: 'Notifications, switch, on' },
+    { before: 'Filters, collapsed, button', after: 'Filters, expanded, button' },
+    { before: '알림, 스위치, 꺼짐', after: '알림, 스위치, 켜짐' },
+  ]) {
+    const { prompt } = prepareConnected('', `Before: ${pair.before}\nAfter: ${pair.after}`);
+    assert.match(prompt, /This pair has insufficient evidence/i);
+    assert.deepEqual(readGrantedPrompt(prompt), pair);
+    const card = {
+      en: { ...pair, impact: 'Insufficient evidence to identify an accessibility issue.', retest: ['Repeat with the same screen reader and settings.', 'Record the action, expected behavior, and actual announcement.'], fix: 'No fix is justified by this evidence.' },
+      ko: { ...pair, impact: '접근성 문제를 확인하기에 근거가 부족합니다.', retest: ['같은 스크린 리더와 설정으로 다시 확인합니다.', '동작, 예상 결과, 실제 낭독을 기록합니다.'], fix: '이 근거만으로는 수정을 제안할 수 없습니다.' },
+    };
+    assert.deepEqual(validateConnectedCard(card, pair), card);
+    assert.equal(validateConnectedCard({ ...card, ko: { ...card.ko, fix: '이 스위치의 접근성 이름을 수정하세요.' } }, pair), null);
+    assert.equal(validateConnectedCard({ ...card, en: { ...card.en, impact: 'This control is broken.' } }, pair), null);
+  }
+});
+
+test('role-only to action name assesses observed impact without assuming a confirmed defect', () => {
+  const { prompt } = prepareConnected('', 'Before: Button\nAfter: Change delivery address, Button');
+  assert.match(prompt, /role-only before announcement/);
+  assert.match(prompt, /Do not claim a confirmed defect or cause/);
+  assert.doesNotMatch(prompt, /copy these impact, retest, fix values/);
+});

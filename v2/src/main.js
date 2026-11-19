@@ -1,4 +1,4 @@
-import { EN_SAMPLE, LIMIT, SAMPLE, applySuggestion, canUseEnglishModel, compare, makeReview, redact } from './core.js';
+import { DELIVERY_OBSERVATIONS, EN_SAMPLE, LIMIT, SAMPLE, applySuggestion, canUseEnglishModel, compare, makeReview, redact } from './core.js';
 import { suggestOnDevice } from './device.js';
 import { renderReport } from './report.js';
 import { invalidateCloud } from './connected-workspace.js';
@@ -162,7 +162,7 @@ make.onclick = () => {
   }
   const pair = compare(redact(exact, englishSource() ? 'en' : ''));
   renderReport(el('card-text'), pair, {
-    delivery: (pair?.before === 'Button' && pair.after === 'Change shipping address, button') ||
+    delivery: (pair?.before === DELIVERY_OBSERVATIONS.before && pair.after === DELIVERY_OBSERVATIONS.after) ||
       (pair?.before === '버튼' && pair.after === '배송지 변경, 버튼'),
   });
   el('card').hidden = false;

@@ -5,8 +5,9 @@ export const SAMPLE = `수정 전: 버튼
 이메일: replay@example.invalid
 금액: 12,300원
 주소: 서울특별시 가상구 예시로 123, 101호`;
-export const EN_SAMPLE = `Before: Button
-After: Change shipping address, button
+export const DELIVERY_OBSERVATIONS = Object.freeze({ before: 'Button', after: 'Change delivery address, Button' });
+export const EN_SAMPLE = `Before: ${DELIVERY_OBSERVATIONS.before}
+After: ${DELIVERY_OBSERVATIONS.after}
 Customer name: Avery Example
 Phone: (202) 555-0100
 Email: replay@example.invalid

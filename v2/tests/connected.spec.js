@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 const raw = 'Before: Collapsed, button\nAfter: Expanded, button\nCustomer name: Avery Example\nAddress: 101 Sample Street\nUNAPPROVED_CANARY';
-const edited = 'Before: Filters, collapsed, button\nAfter: Filters, expanded, button\nUNAPPROVED_DRAFT';
-const quotes = { before: 'Filters, collapsed, button', after: 'Filters, expanded, button' };
+const edited = 'Before: Button\nAfter: Filters, button\nUNAPPROVED_DRAFT';
+const quotes = { before: 'Button', after: 'Filters, button' };
 const config = { projectId: 'replay-demo-invalid', appId: '1:000000000000:web:0000000000000000000000', apiKey: `AIza${'x'.repeat(35)}` };
 const card = {
-  en: { ...quotes, impact: '<b>The expanded state helps users expect the filter panel.</b>', retest: ['Focus Filters with the same screen reader.', 'Activate the button and compare the state announcement.'], fix: 'If the state is stale, inspect whether aria-expanded tracks the panel.' },
-  ko: { ...quotes, impact: '펼침 상태가 필터 패널을 예고합니다.', retest: ['같은 스크린리더에서 필터를 실행합니다.', '펼침 상태가 읽히는지 비교합니다.'], fix: '상태가 다르면 펼침 속성을 확인합니다.' },
+  en: { ...quotes, impact: '<b>A descriptive label helps users identify the control.</b>', retest: ['Focus Filters with the same screen reader.', 'Compare the name and role in each version.'], fix: 'If the name is missing, inspect the computed accessible name.' },
+  ko: { ...quotes, impact: '버튼 이름을 들으면 기능을 알 수 있습니다.', retest: ['같은 스크린리더에서 필터를 실행합니다.', '이름과 역할이 읽히는지 비교합니다.'], fix: '이름이 빠졌다면 접근 가능한 이름을 검사합니다.' },
 };
 
 async function setup(page, baseURL, variant = 'success') {
