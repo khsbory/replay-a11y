@@ -27,7 +27,8 @@ The button is now named
 
 7
 00:00:41,500 --> 00:00:46,000
-This take imports synthetic English text.
+To import synthetic text, select
+“Choose a UTF-8 text file”.
 
 8
 00:00:46,500 --> 00:00:53,000
@@ -41,12 +42,11 @@ in the draft.
 
 10
 00:01:01,500 --> 00:01:07,000
-Now we load the built-in English sample.
+Choose “Load English synthetic sample”.
 
 11
 00:01:07,500 --> 00:01:12,000
-We ask the on-device model
-for a redaction suggestion.
+Choose “Get on-device model suggestions”.
 
 12
 00:01:16,000 --> 00:01:20,500
@@ -54,8 +54,8 @@ The app verified an on-device response.
 
 13
 00:01:21,000 --> 00:01:26,500
-We apply the mask to the fictional name
-and keep both excerpts unchanged.
+Choose “Apply additional redactions”.
+Keep both excerpts unchanged.
 
 14
 00:01:27,500 --> 00:01:33,000
@@ -64,17 +64,17 @@ card from the same redacted draft.
 
 15
 00:01:34,000 --> 00:01:40,000
-This device builds a card
-with the two reviewed excerpts.
+Choose “Make a card on this device”.
+It includes both reviewed excerpts.
 
 16
 00:01:40,500 --> 00:01:45,000
-Nothing was sent to make this card.
+Nothing was sent.
 
 17
 00:01:46,500 --> 00:01:53,000
-The cloud preview takes only the two
-excerpts from the same draft.
+Choose
+“Preview exact text to send to the cloud”.
 
 18
 00:01:53,500 --> 00:02:00,000
@@ -83,8 +83,8 @@ and both English quotes.
 
 19
 00:02:01,000 --> 00:02:08,000
-Check for private details and approve.
-Then click Send separately.
+Check, approve, then select
+“Send approved text to Gemini (new tab)”.
 
 20
 00:02:09,000 --> 00:02:15,500
@@ -93,8 +93,8 @@ and waits for the response.
 
 21
 00:02:17,500 --> 00:02:22,500
-The relay confirms receipt.
-We return to the workspace.
+After the card arrives, choose
+“Close relay tab”.
 
 22
 00:02:23,000 --> 00:02:29,500
@@ -108,7 +108,8 @@ quotes exactly as written.
 
 24
 00:02:35,500 --> 00:02:39,500
-The log alone can't confirm the cause.
+The cause cannot be confirmed
+from the log alone.
 
 25
 00:02:40,500 --> 00:02:46,000

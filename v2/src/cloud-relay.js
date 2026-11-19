@@ -1,15 +1,27 @@
 import { readGrantedPrompt, validateConnectedCard } from './connected-card.js';
+import { initLocale, setStatus } from './ui-locale.js';
+
+const messages = {
+  inactive: ["No active approval or App Check configuration. Return to the workspace.", "활성 승인 또는 App Check 설정이 없습니다. 작업 탭으로 돌아가세요."],
+  failed: ["No cloud card was generated. Return to the workspace.", "클라우드 카드가 만들어지지 않았습니다. 작업 탭으로 돌아가세요."],
+  checking: ["Verifying this browser with App Check…", "App Check로 이 브라우저를 확인하는 중입니다…"],
+  withdrawn: ["Withdrawn. No cloud card will be displayed.", "승인을 취소했습니다. 클라우드 카드를 표시하지 않습니다."],
+  waiting: ["Waiting for Gemini…", "Gemini 응답을 기다리는 중입니다…"],
+  success: ["Cloud card received. Return to the workspace.", "클라우드 카드를 받았습니다. 작업 탭으로 돌아가세요."],
+};
 
 const status = document.getElementById('relay-status');
-const key = location.hash.slice(1);
+const capability = /^#([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})(\.ko)?$/.exec(location.hash);
+const key = capability?.[1];
 // Strip the capability before any provider script loads. Do not accept a query-string or an opener.
 history.replaceState(null, '', '/cloud-relay.html');
+initLocale(capability?.[2] ? 'ko' : 'en');
 document.getElementById('relay-close').onclick = () => window.close();
 
-if (window.opener === null && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(key) && __RECAPTCHA_SITE_KEY__) {
+if (window.opener === null && key && __RECAPTCHA_SITE_KEY__) {
   startRelay(key);
 } else {
-  status.textContent = 'No active approval or App Check configuration. Return to the workspace.';
+  setStatus(status, messages.inactive);
 }
 
 function startRelay(key) {
@@ -24,13 +36,13 @@ function startRelay(key) {
   function finish(text, result) {
     if (phase === 'done') return;
     phase = 'done';
-    status.textContent = text;
+    setStatus(status, text);
     if (result) channel.postMessage(result);
     controller.abort();
     channel.close();
     if (app) void appSdk.deleteApp(app).catch(() => {});
   }
-  const fail = () => finish('No cloud card was generated. Return to the workspace.', { type: 'failed' });
+  const fail = () => finish(messages.failed, { type: 'failed' });
   signal.addEventListener('abort', fail, { once: true });
   addEventListener('pagehide', fail, { once: true });
 
@@ -50,7 +62,7 @@ function startRelay(key) {
     const attestation = check.initializeAppCheck(app, {
       provider: new check.ReCaptchaEnterpriseProvider(__RECAPTCHA_SITE_KEY__), isTokenAutoRefreshEnabled: false,
     });
-    status.textContent = 'Verifying this browser with App Check…';
+    setStatus(status, messages.checking);
     await check.getToken(attestation);
     signal.throwIfAborted();
     const service = ai.getAI(app, { backend: new ai.GoogleAIBackend() });
@@ -63,7 +75,7 @@ function startRelay(key) {
   }
 
   channel.onmessage = async ({ data }) => {
-    if (data?.type === 'revoke') return finish('Withdrawn. No cloud card will be displayed.');
+    if (data?.type === 'revoke') return finish(messages.withdrawn);
     try {
       if (data?.type === 'prepare' && phase === 'ready') {
         phase = 'attesting';
@@ -74,14 +86,14 @@ function startRelay(key) {
         const pair = readGrantedPrompt(prompt);
         if (!pair) return fail();
         signal.throwIfAborted();
-        status.textContent = 'Waiting for Gemini…';
+        setStatus(status, messages.waiting);
         const { response } = await model.generateContent(prompt, { signal, timeout: 25_000 });
         signal.throwIfAborted();
         if (response.inferenceSource !== ai.InferenceSource.IN_CLOUD || response.candidates?.length !== 1 || response.candidates[0].finishReason !== 'STOP') return fail();
         const text = response.text();
         const card = text.length <= 16_000 && validateConnectedCard(JSON.parse(text), pair);
         if (!card) return fail();
-        finish('Cloud card received. Return to the workspace.', { type: 'result', source: 'IN_CLOUD', card });
+        finish(messages.success, { type: 'result', source: 'IN_CLOUD', card });
       }
     } catch {
       fail();

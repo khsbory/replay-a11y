@@ -80,9 +80,10 @@ for (const outcome of ['suggestion', 'unavailable']) {
         create: async () => ({ prompt: () => new Promise(resolve => { window.finishPrompt = resolve; }), destroy() {} }),
       } });
     }, outcome);
-    await page.goto('/');
+    await page.goto('/#ko');
     const a = await audit(page);
     await a.state('initial', { scan: outcome === 'suggestion', liveCount: 1 });
+    await a.key('Tab', 'ui-language');
     await a.key('Tab', 'sample');
     await a.key('Tab', 'sample-en');
     await a.key('Enter', 'comparison');
@@ -190,7 +191,7 @@ for (const outcome of ['success', 'failure', 'withdraw', 'success-after-focus-mo
     const a = await audit(page);
     try {
       await a.state('initial', { scan: outcome === 'success', liveCount: 1 });
-      for (const id of ['/before.html', '/after.html', '/', 'select-figure']) await a.key('Tab', id);
+      for (const id of ['ui-language', '/before.html', '/after.html', '/', 'select-figure']) await a.key('Tab', id);
       await a.key('Enter', 'preview-title');
       await expect(page.locator('#select-figure')).toHaveAttribute('aria-expanded', 'true');
       const preview = await a.state('preview', { scan: outcome === 'success', liveCount: 1 });

@@ -38,7 +38,7 @@ test('English synthetic TalkBack reaches Firebase with English options and maske
       },
     } });
   });
-  await page.goto('/');
+  await page.goto('/#ko');
   await englishSample(page).click({ timeout: 2000 });
   await expect(page.locator('#before')).toHaveText('Button');
   await expect(page.locator('#after')).toHaveText('Change delivery address, Button');
@@ -64,7 +64,7 @@ test('English synthetic TalkBack reaches Firebase with English options and maske
 
 test('local card does not diagnose an ordinary toggle', async ({ page }) => {
   const checkNetwork = await observe(page);
-  await page.goto('/');
+  await page.goto('/#ko');
   await page.locator('#source').fill('Before: Notifications, switch, off\nAfter: Notifications, switch, on');
   await page.locator('#prepare').click();
   await consent(page).check();
@@ -84,7 +84,9 @@ for (const provider of ['missing', 'unavailable']) {
         create: async () => { window.providerCalls.push('create'); throw new Error('Unexpected creation'); },
       } });
     }, provider);
-    await page.goto('/');
+    await page.goto('/#ko');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#ui-language')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(sample(page)).toBeFocused();
     await page.keyboard.press('Tab');
@@ -137,7 +139,7 @@ test('real SDK masks the prompt, accepts literal candidates only, and requires r
       }, destroy() {} }),
     } });
   });
-  await page.goto('/');
+  await page.goto('/#ko');
   await englishSample(page).click();
   await preview(page).fill(`${await preview(page).inputValue()}\nBackup email: hidden@example.invalid`);
   await consent(page).check();
@@ -164,7 +166,7 @@ test('pending SDK results cannot replace an edited and re-approved draft', async
       create: async () => ({ prompt: () => new Promise(resolve => { window.finishPrompt = resolve; }), destroy() {} }),
     } });
   });
-  await page.goto('/');
+  await page.goto('/#ko');
   await englishSample(page).click();
   await suggest(page).click();
   await expect.poll(() => page.evaluate(() => typeof window.finishPrompt)).toBe('function');
@@ -189,7 +191,7 @@ for (const input of ['Korean sample', 'mixed source', 'mixed draft', 'unconfirme
         return undefined;
       } });
     });
-    await page.goto('/');
+    await page.goto('/#ko');
     if (input === 'Korean sample') {
       await sample(page).click();
       await expect(preview(page)).toHaveValue(/\[전화번호 가림\][\s\S]*\[주소 가림\]/);
@@ -224,7 +226,7 @@ for (const input of ['Korean sample', 'mixed source', 'mixed draft', 'unconfirme
 test('built page CSP blocks even same-origin fetch before it becomes a request', async ({ page }) => {
   const requests = [];
   page.on('request', req => requests.push(req.url()));
-  await page.goto('/');
+  await page.goto('/#ko');
   const result = await page.evaluate(() => new Promise(resolve => {
     addEventListener('securitypolicyviolation', event => resolve(event.effectiveDirective), { once: true });
     fetch('/test-csp-canary').catch(() => {});
@@ -235,7 +237,7 @@ test('built page CSP blocks even same-origin fetch before it becomes a request',
 
 test('file import, free-form input, narrow viewport and axe rules', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
-  await page.goto('/');
+  await page.goto('/#ko');
   await page.getByLabel('UTF-8 텍스트 파일 선택').setInputFiles({ name: 'synthetic.txt', mimeType: 'text/plain', buffer: Buffer.from('자유 형식: 버튼\n문의: replay@example.invalid') });
   await expect(preview(page)).toHaveValue('자유 형식: 버튼\n문의: [이메일 가림]');
   await expect(page.getByText('수정 전·후 표기가 없어도 초안을 검토할 수 있습니다.')).toBeVisible();

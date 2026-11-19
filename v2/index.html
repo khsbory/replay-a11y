@@ -1,93 +1,95 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
-  <title>다시듣기 v2 · 낭독 비교와 가림 검토</title>
+  <title data-ko="다시듣기 v2 · 낭독 비교와 가림 검토">Replay A11y v2 · Screen reader comparison and redaction review</title>
   <link rel="stylesheet" href="/src/style.css">
   <script type="module" src="/src/main.js"></script>
 </head>
 <body>
 <main>
   <header>
-    <p class="tag">TalkBack 접근성 검토 · 로컬 우선</p>
-    <h1>다시듣기 <small>v2</small></h1>
-    <p>스크린리더 낭독을 비교하고 민감한 내용을 가립니다. 원문과 전체 초안은 이 탭에 남습니다. 클라우드가 설정된 경우에만 검토한 비교 문구를 별도 승인 후 Gemini에 보낼 수 있습니다.</p>
-    <noscript><p>이 앱에는 자바스크립트가 필요합니다.</p></noscript>
+    <button id="ui-language" type="button" lang="ko" hidden>한국어</button>
+    <p class="tag" data-ko="TalkBack 접근성 검토 · 로컬 우선">TalkBack accessibility review · Local first</p>
+    <h1><span data-ko="다시듣기">Replay A11y</span> <small>v2</small></h1>
+    <p data-ko="스크린리더 낭독을 비교하고 민감한 내용을 가립니다. 원문과 전체 초안은 이 탭에 남습니다. 클라우드가 설정된 경우에만 검토한 비교 문구를 별도 승인 후 Gemini에 보낼 수 있습니다.">Compare screen reader utterances and redact sensitive details. The original recording and full draft stay in this tab. If cloud send is available, only the reviewed comparison can be sent to Gemini after separate approval.</p>
+    <noscript><p>This app requires JavaScript. <span lang="ko">이 앱에는 자바스크립트가 필요합니다.</span></p></noscript>
   </header>
   <section aria-labelledby="input-title">
-    <h2 id="input-title">1. 낭독 기록 준비</h2>
-    <button id="sample" type="button">합성 샘플 불러오기</button>
-    <button id="sample-en" type="button">영어 합성 샘플 불러오기</button>
-    <label for="file">UTF-8 텍스트 파일 선택</label>
-    <input id="file" type="file" accept=".txt,text/plain" aria-describedby="input-help" autocomplete="off">
-    <p id="input-help">붙여넣기와 파일 선택 모두 가능합니다. 8,000자까지 입력할 수 있습니다. ‘수정 전:’과 ‘수정 후:’ 또는 <span lang="en">‘Before:’</span>와 <span lang="en">‘After:’</span>를 각각 한 줄에 쓰면 비교가 표시됩니다. 자유 형식도 됩니다.</p>
-    <label for="source">낭독 기록 원문</label>
-    <textarea id="source" rows="6" maxlength="8000" autocomplete="off" spellcheck="false" aria-describedby="input-help" data-gramm="false"></textarea>
-    <label class="checkbox"><input id="english" type="checkbox" autocomplete="off"> 기록 전체가 영어입니다 (기기 내 모델 제안 선택 가능).</label>
-    <button id="prepare" type="button">패턴 가림으로 초안 만들기</button>
+    <h2 id="input-title" data-ko="1. 낭독 기록 준비">1. Prepare the screen reader recording</h2>
+    <button id="sample" type="button" data-ko="합성 샘플 불러오기">Load Korean synthetic sample</button>
+    <button id="sample-en" type="button" data-ko="영어 합성 샘플 불러오기">Load English synthetic sample</button>
+    <button id="choose-file" type="button" aria-describedby="input-help" data-ko="UTF-8 텍스트 파일 선택">Choose a UTF-8 text file</button>
+    <label for="file" hidden data-ko="UTF-8 텍스트 파일 선택">Choose a UTF-8 text file</label>
+    <input id="file" type="file" accept=".txt,text/plain" autocomplete="off" hidden>
+    <p id="input-help"><span data-ko="붙여넣기와 파일 선택 모두 가능합니다. 8,000자까지 입력할 수 있습니다. 다음 표기로 각각 한 줄을 시작하면 비교가 표시됩니다.">Paste text or choose a file, up to 8,000 characters. To show a comparison, start separate lines with</span> <span lang="en">‘Before:’ / ‘After:’</span> · <span lang="ko">‘수정 전:’ / ‘수정 후:’</span>. <span data-ko="자유 형식도 됩니다.">Free-form text also works.</span></p>
+    <label for="source" data-ko="낭독 기록 원문">Original screen reader recording</label>
+    <textarea id="source" lang="und" rows="6" maxlength="8000" autocomplete="off" spellcheck="false" aria-describedby="input-help" data-gramm="false"></textarea>
+    <label class="checkbox"><input id="english" type="checkbox" autocomplete="off"> <span data-ko="기록 전체가 영어입니다 (기기 내 모델 제안 선택 가능).">The entire recording is in English (optional on-device model suggestions).</span></label>
+    <button id="prepare" type="button" data-ko="패턴 가림으로 초안 만들기">Create draft with pattern redaction</button>
     <p id="input-status" role="status" aria-atomic="true"></p>
   </section>
   <section aria-labelledby="comparison" id="work" hidden>
-    <h2 id="comparison" tabindex="-1">2. 수정 전후 비교</h2>
-    <p>아래 비교에는 패턴 가림을 적용했습니다.</p>
+    <h2 id="comparison" tabindex="-1" data-ko="2. 수정 전후 비교">2. Before and after comparison</h2>
+    <p data-ko="아래 비교에는 패턴 가림을 적용했습니다.">This comparison uses pattern redaction.</p>
     <dl id="pairs" hidden>
-      <dt>수정 전</dt><dd id="before"></dd>
-      <dt>수정 후</dt><dd id="after"></dd>
+      <dt data-ko="수정 전">Before</dt><dd id="before"></dd>
+      <dt data-ko="수정 후">After</dt><dd id="after"></dd>
     </dl>
-    <p id="no-pairs" hidden>수정 전·후 표기가 없어도 초안을 검토할 수 있습니다.</p>
-    <h3>추가 가림 제안 (선택)</h3>
-    <p id="model-help">영어로 지정한 기록에만 모델 제안을 시도합니다. 한국어·혼합 기록은 패턴 가림과 직접 편집을 사용하며 모델을 호출하지 않습니다. 지원되는 데스크톱 Chrome에서도 이 프로필에서 모델을 사용할 수 있어야 합니다. 패턴으로 가린 문구만 기기 내 모델에 전달합니다. Chrome이 모델 파일을 내려받을 수 있지만, 클라우드 추론으로 전환하지 않습니다.</p>
-    <button id="suggest" type="button" aria-describedby="model-help">기기 내 모델 제안 받기</button>
+    <p id="no-pairs" hidden data-ko="수정 전·후 표기가 없어도 초안을 검토할 수 있습니다.">You can review the draft even without Before and After lines.</p>
+    <h3 data-ko="추가 가림 제안 (선택)">Optional: additional redaction suggestions</h3>
+    <p id="model-help" data-ko="영어로 지정한 기록에만 모델 제안을 시도합니다. 한국어·혼합 기록은 패턴 가림과 직접 편집을 사용하며 모델을 호출하지 않습니다. 지원되는 데스크톱 Chrome에서도 이 프로필에서 모델을 사용할 수 있어야 합니다. 패턴으로 가린 문구만 기기 내 모델에 전달합니다. Chrome이 모델 파일을 내려받을 수 있지만, 클라우드 추론으로 전환하지 않습니다.">Model suggestions are only available for recordings marked as English. For Korean or mixed-language recordings, use pattern redaction and manual editing; no model is called. Even on supported desktop Chrome, this browser profile must have access to the model. Only text with pattern redaction is passed to the on-device model. Chrome may download model files, but the app does not switch to cloud inference.</p>
+    <button id="suggest" type="button" aria-describedby="model-help" data-ko="기기 내 모델 제안 받기">Get on-device model suggestions</button>
     <p id="model-status" role="status" aria-atomic="true"></p>
     <div id="proposal" hidden>
-      <h4>제안을 적용했을 때의 문구</h4>
+      <h4 data-ko="제안을 적용했을 때의 문구">Text with suggestions applied</h4>
       <pre id="proposal-text"></pre>
-      <button id="apply" type="button">추가 가림 제안 적용</button>
+      <button id="apply" type="button" data-ko="추가 가림 제안 적용">Apply additional redactions</button>
     </div>
   </section>
   <section aria-labelledby="review-title" id="review" hidden>
-    <h2 id="review-title">3. 카드 문구 편집 및 동의</h2>
-    <p id="draft-help">전화번호, 이메일, 금액, 주소의 흔한 표기만 자동으로 가립니다. 특히 수정 전·후 문구에 남은 이름이나 주소가 없는지 확인하세요. 카드는 검토한 수정 전·후 낭독 문구만 인용하고, 나머지 줄이나 가림 표시는 싣지 않습니다. 편집하면 동의가 취소됩니다.</p>
-    <label for="draft">카드에 들어갈 정확한 문구</label>
-    <textarea id="draft" rows="8" autocomplete="off" spellcheck="false" aria-describedby="draft-help" data-gramm="false"></textarea>
-    <label class="checkbox"><input id="consent" type="checkbox" autocomplete="off"> 현재 문구를 이 기기에서 카드로 만드는 데 동의합니다.</label>
-    <button id="make" type="button" disabled>이 기기에서 카드 만들기</button>
+    <h2 id="review-title" data-ko="3. 카드 문구 편집 및 동의">3. Edit card text and give consent</h2>
+    <p id="draft-help" data-ko="전화번호, 이메일, 금액, 주소의 흔한 표기만 자동으로 가립니다. 특히 수정 전·후 문구에 남은 이름이나 주소가 없는지 확인하세요. 카드는 검토한 수정 전·후 낭독 문구만 인용하고, 나머지 줄이나 가림 표시는 싣지 않습니다. 편집하면 동의가 취소됩니다.">Pattern redaction covers only common forms of phone numbers, emails, amounts and addresses. Check for names or addresses, especially in the Before and After lines. Cards quote only the reviewed Before and After utterances, not other lines or redaction markers. Editing the text clears consent.</p>
+    <label for="draft" data-ko="카드에 들어갈 정확한 문구">Exact text for the card</label>
+    <textarea id="draft" lang="und" rows="8" autocomplete="off" spellcheck="false" aria-describedby="draft-help" data-gramm="false"></textarea>
+    <label class="checkbox"><input id="consent" type="checkbox" autocomplete="off"> <span data-ko="현재 문구를 이 기기에서 카드로 만드는 데 동의합니다.">I consent to making a card from the current text on this device.</span></label>
+    <button id="make" type="button" disabled data-ko="이 기기에서 카드 만들기">Make a card on this device</button>
     <p id="review-status" role="status" aria-atomic="true"></p>
     <section aria-labelledby="connected-title">
-      <h3 id="connected-title">선택: Gemini 클라우드 카드</h3>
-      <p>편집한 초안에서 수정 전·후 낭독만 가져옵니다. 자동 검사는 모든 개인정보를 찾지 못합니다. 이름, 주소, 주문번호 등 비공개 정보가 한 글자라도 남으면 초안에서 제거하거나 이 기능을 사용하지 마세요.</p>
-      <p id="cloud-disabled">이 빌드에서는 클라우드 전송이 비활성화되어 있습니다. 문구를 미리보기만 할 수 있습니다.</p>
-      <button id="cloud-preview-button" type="button" aria-controls="cloud-preview" aria-expanded="false">클라우드에 보낼 정확한 문구 미리보기</button>
+      <h3 id="connected-title" data-ko="선택: Gemini 클라우드 카드">Optional: Gemini cloud card</h3>
+      <p data-ko="편집한 초안에서 수정 전·후 낭독만 가져옵니다. 자동 검사는 모든 개인정보를 찾지 못합니다. 이름, 주소, 주문번호 등 비공개 정보가 한 글자라도 남으면 초안에서 제거하거나 이 기능을 사용하지 마세요.">Only the Before and After utterances from the edited draft are used. Automatic checks can miss private information. Remove any names, addresses, order numbers or other private details from the draft, or skip cloud send.</p>
+      <p id="cloud-disabled" data-ko="이 빌드에서는 클라우드 전송이 비활성화되어 있습니다. 문구를 미리보기만 할 수 있습니다.">Cloud send is disabled in this build. You can still preview the text.</p>
+      <button id="cloud-preview-button" type="button" aria-controls="cloud-preview" aria-expanded="false" data-ko="클라우드에 보낼 정확한 문구 미리보기">Preview exact text to send to the cloud</button>
       <div id="cloud-preview" hidden>
-        <h4 id="cloud-preview-title" tabindex="-1">Gemini로 보낼 전체 텍스트 (최대 1,000자)</h4>
-        <pre id="cloud-outgoing"></pre>
-        <p>전송 버튼을 누르면 격리된 탭이 열립니다. Google reCAPTCHA가 브라우저를 확인하고 Firebase AI Logic이 위 텍스트와 요청 설정을 보냅니다. 이미 나간 요청은 회수할 수 없습니다.</p>
-        <label class="checkbox"><input id="cloud-approve" type="checkbox" autocomplete="off" disabled> 개인정보가 없음을 확인했고, 위 문구 그대로 Gemini 클라우드에 보내는 데 동의합니다.</label>
-        <button id="cloud-send" type="button" disabled>승인한 문구를 Gemini에 전송 (새 탭)</button>
+        <h4 id="cloud-preview-title" tabindex="-1" data-ko="Gemini로 보낼 전체 텍스트 (최대 1,000자)">Full text to send to Gemini (up to 1,000 characters)</h4>
+        <pre id="cloud-outgoing" lang="en"></pre>
+        <p data-ko="전송 버튼을 누르면 원문이나 전체 초안에 접근할 수 없는 격리된 탭이 열립니다. Google reCAPTCHA가 브라우저를 확인한 뒤 Firebase AI Logic이 위 문구 그대로와 요청 설정을 보냅니다. 이미 나간 요청은 회수할 수 없습니다.">Send opens an isolated tab that has no access to the original recording or full draft. Google reCAPTCHA checks the browser, then Firebase AI Logic sends the exact text above and the request settings. You cannot recall a request that has already left.</p>
+        <label class="checkbox"><input id="cloud-approve" type="checkbox" autocomplete="off" disabled> <span data-ko="개인정보가 없음을 확인했고, 위 문구 그대로 Gemini 클라우드에 보내는 데 동의합니다.">I checked that there is no private information and approve sending this exact text to Gemini in the cloud.</span></label>
+        <button id="cloud-send" type="button" disabled data-ko="승인한 문구를 Gemini에 전송 (새 탭)">Send approved text to Gemini (new tab)</button>
       </div>
       <p id="connected-status" role="status" aria-atomic="true"></p>
     </section>
   </section>
   <section aria-labelledby="card-title" id="card" hidden>
-    <h2 id="card-title" tabindex="-1">4. 이 기기에서 만든 카드</h2>
-    <p>아무에게도 보내지 않았습니다.</p>
+    <h2 id="card-title" tabindex="-1" data-ko="4. 이 기기에서 만든 카드">4. Card made on this device</h2>
+    <p data-ko="아무에게도 보내지 않았습니다.">Nothing was sent.</p>
     <div id="card-text"></div>
   </section>
   <section id="connected-result" aria-labelledby="connected-result-title" hidden>
-    <h2 id="connected-result-title">Gemini가 작성한 이중 언어 이슈 카드</h2>
+    <h2 id="connected-result-title" data-ko="Gemini가 작성한 이중 언어 이슈 카드">Bilingual issue card written by Gemini</h2>
     <p id="connected-source"></p>
-    <p>가능한 수정과 재검증 절차는 제안입니다. 적용하기 전에 확인하세요.</p>
+    <p data-ko="가능한 수정과 재검증 절차는 제안입니다. 적용하기 전에 확인하세요.">The possible fix and retest steps are suggestions. Review them before applying.</p>
     <div id="connected-card"></div>
   </section>
   <footer>
-    <p>원문과 초안 전체는 현재 탭에서만 사용합니다. 아래 고정 샘플 데모는 선택 사항입니다.</p>
-    <nav aria-label="데모 페이지">
+    <p data-ko="원문과 초안 전체는 현재 탭에서만 사용합니다. 아래 고정 샘플 데모는 선택 사항입니다.">The original recording and full draft are used only in this tab. The fixed sample demo below is optional.</p>
+    <nav aria-label="Demo pages" data-ko-label="데모 페이지">
       <ul>
-        <li><a href="/before.html" rel="noreferrer" lang="en">Before: unlabeled delivery button</a></li>
-        <li><a href="/after.html" rel="noreferrer" lang="en">After: named delivery button</a></li>
-        <li><a href="/approved-demo.html" rel="noreferrer" lang="en">Approved cloud demo</a> (고정 합성 샘플)</li>
+        <li><a href="/before.html" rel="noreferrer" data-ko="수정 전: 이름 없는 배송지 변경 버튼">Before: unlabeled delivery button</a></li>
+        <li><a href="/after.html" rel="noreferrer" data-ko="수정 후: 이름이 있는 배송지 변경 버튼">After: named delivery button</a></li>
+        <li><a href="/approved-demo.html" data-locale-link rel="noreferrer" data-ko="승인된 클라우드 데모">Approved cloud demo</a> <span data-ko="(고정 합성 샘플)">(fixed synthetic sample)</span></li>
       </ul>
     </nav>
   </footer>

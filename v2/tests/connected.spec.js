@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 const raw = 'Before: Collapsed, button\nAfter: Expanded, button\nCustomer name: Avery Example\nAddress: 101 Sample Street\nUNAPPROVED_CANARY';
 const edited = 'Before: Button\nAfter: Filters, button\nUNAPPROVED_DRAFT';
@@ -9,7 +10,7 @@ const card = {
   ko: { ...quotes, impact: '버튼 이름을 들으면 기능을 알 수 있습니다.', retest: ['같은 스크린리더에서 필터를 실행합니다.', '이름과 역할이 읽히는지 비교합니다.'], fix: '이름이 빠졌다면 접근 가능한 이름을 검사합니다.' },
 };
 
-async function setup(page, baseURL, variant = 'success') {
+async function setup(page, baseURL, variant = 'success', locale = 'ko') {
   const gate = Promise.withResolvers();
   const reads = [], posts = [], other = [], exchanges = [];
   await page.context().route('**/*', async route => {
@@ -31,8 +32,8 @@ async function setup(page, baseURL, variant = 'success') {
     }
     if (url.href === `https://firebasevertexai.googleapis.com/v1beta/projects/${config.projectId}/models/gemini-3.5-flash-lite:generateContent` && req.method() === 'POST') {
       posts.push(req);
-      if (variant === 'late') await gate.promise;
-      if (variant === 'http') return route.fulfill({ status: 503, json: { error: { message: 'HIDDEN_ERROR' } } });
+      if (variant === 'late' || variant.startsWith('locale-')) await gate.promise;
+      if (variant === 'http' || variant === 'locale-failure') return route.fulfill({ status: 503, json: { error: { message: 'HIDDEN_ERROR' } } });
       const result = structuredClone(card);
       if (variant === 'altered') result.ko.before += '.';
       if (variant === 'incomplete') delete result.en.fix;
@@ -42,7 +43,7 @@ async function setup(page, baseURL, variant = 'success') {
     other.push(req.url());
     return route.abort();
   });
-  await page.goto('/');
+  await page.goto(locale === 'ko' ? '/#ko' : '/');
   await page.locator('#source').fill(raw);
   await page.locator('#prepare').click();
   await page.locator('#draft').fill(edited);
@@ -123,6 +124,7 @@ for (const [variant, change, expectedPosts] of [
   const { gate, reads, posts } = await setup(page, baseURL, variant);
   const relay = await send(page);
   await expect.poll(() => (expectedPosts ? posts : reads).length).toBe(1);
+  await relay.locator('#ui-language').press('Enter'); // Keep the original English relay assertion.
   await change(page);
   await expect(relay.locator('#relay-status')).toContainText('Withdrawn');
   gate.resolve();
@@ -140,3 +142,54 @@ for (const variant of ['altered', 'incomplete', 'malformed', 'http']) test(`prov
   await expect(page.locator('#cloud-send')).toBeDisabled();
   expect(posts).toHaveLength(1);
 });
+
+for (const locale of ['en', 'ko']) for (const outcome of ['success', 'failure']) {
+  test(`bilingual keyboard/axe: ${locale} relay ${outcome}, switch during inference`, async ({ page, baseURL }) => {
+    const { gate, posts } = await setup(page, baseURL, `locale-${outcome}`, locale);
+    const audit = async (target, stage) => {
+      expect((await new AxeBuilder({ page: target }).analyze()).violations, stage).toEqual([]);
+    };
+    const approve = page.locator('#cloud-approve');
+    const exact = await page.locator('#cloud-outgoing').textContent();
+    await page.keyboard.press('Tab');
+    await expect(approve).toBeFocused();
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#cloud-send')).toBeFocused();
+    const popup = page.context().waitForEvent('page');
+    await page.keyboard.press('Enter');
+    const relay = await popup;
+    try {
+      await expect.poll(() => posts.length).toBe(1);
+      await expect(relay.locator('html')).toHaveAttribute('lang', locale);
+      await expect(relay.locator('#relay-status')).toHaveText(locale === 'en' ? 'Waiting for Gemini…' : 'Gemini 응답을 기다리는 중입니다…');
+      await expect(approve).toBeFocused();
+      await audit(relay, 'relay pending');
+      await audit(page, 'workspace pending');
+      await page.locator('#ui-language').press('Enter');
+      await relay.locator('#ui-language').press('Space');
+      await expect(approve).toBeChecked();
+      await expect(page.locator('#cloud-send')).toBeDisabled();
+      await expect(page.locator('#connected-status')).toHaveText(locale === 'en' ? '승인한 문구에 대해 Gemini 응답을 기다리고 있습니다.' : 'Waiting for Gemini to respond to the approved text.');
+      gate.resolve();
+      await expect(page.locator('#connected-status')).toContainText(outcome === 'success'
+        ? locale === 'en' ? '클라우드 카드를 받았습니다' : 'Cloud card received'
+        : locale === 'en' ? '클라우드 카드를 만들지 못했습니다' : 'Could not make a cloud card');
+      await expect(relay.locator('#relay-status')).toContainText(outcome === 'success'
+        ? locale === 'en' ? '클라우드 카드를 받았습니다' : 'Cloud card received'
+        : locale === 'en' ? '클라우드 카드가 만들어지지 않았습니다' : 'No cloud card was generated');
+      await expect(page.locator('#ui-language')).toBeFocused();
+      await expect(relay.locator('#ui-language')).toBeFocused();
+      await expect(approve).not.toBeChecked();
+      expect(posts[0].postDataJSON().contents[0].parts[0].text).toBe(exact);
+      if (outcome === 'success') {
+        await expect(page.locator('#connected-result')).toBeVisible();
+        for (const lang of ['en', 'ko']) {
+          expect(await page.locator(`#connected-card article[lang=${lang}] dd[lang=en]`).allTextContents()).toEqual(Object.values(quotes));
+        }
+      } else await expect(page.locator('#connected-result')).toBeHidden();
+      await audit(page, 'workspace terminal');
+      await audit(relay, 'relay terminal');
+    } finally { gate.resolve(); }
+  });
+}

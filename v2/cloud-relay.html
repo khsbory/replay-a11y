@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="strict-origin">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
-  <title>Replay A11y · Gemini relay</title>
+  <title data-ko="다시듣기 · Gemini 전송 탭">Replay A11y · Gemini relay</title>
   <link rel="stylesheet" href="/src/style.css">
   <script type="module" src="/src/cloud-relay.js"></script>
 </head>
 <body>
 <main>
-  <h1>Gemini relay</h1>
-  <p lang="ko">이 탭에는 원문이나 전체 초안이 없습니다. 결과는 작업 탭에 표시됩니다. 이 탭을 닫아 요청을 취소할 수 있습니다.</p>
-  <p>This tab has no original recording or full draft. The result appears in the workspace tab. You can close this tab to cancel; a request that has already left cannot be recalled.</p>
-  <p id="relay-status" role="status" aria-atomic="true">Waiting for the workspace…</p>
-  <button id="relay-close" type="button">Close relay tab</button>
+    <button id="ui-language" type="button" lang="ko" hidden>한국어</button>
+  <h1 data-ko="Gemini 전송 탭">Gemini relay</h1>
+  <p data-ko="이 탭에는 원문이나 전체 초안이 없습니다. 결과는 작업 탭에 표시됩니다. 이 탭을 닫아 요청을 취소할 수 있지만, 이미 나간 요청은 회수할 수 없습니다.">This tab has no original recording or full draft. The result appears in the workspace tab. You can close this tab to cancel; a request that has already left cannot be recalled.</p>
+  <p id="relay-status" role="status" aria-atomic="true" data-ko="작업 탭을 기다리는 중입니다…">Waiting for the workspace…</p>
+  <button id="relay-close" type="button" data-ko="전송 탭 닫기">Close relay tab</button>
 </main>
 </body>
 </html>

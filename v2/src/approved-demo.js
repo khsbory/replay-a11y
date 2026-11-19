@@ -1,4 +1,20 @@
 import { CLOUD_FIXES, DELIVERY_OBSERVATIONS, readRecommendation, renderReport } from './report.js';
+import { initLocale, setStatus } from './ui-locale.js';
+
+const messages = {
+  unconfigured: ["Live cloud demo unavailable: production App Check is not configured in this build.", "이 빌드에는 운영 App Check가 설정되지 않아 클라우드 데모를 사용할 수 없습니다."],
+  withdrawn: ["Approval withdrawn. No card will be shown. If a request already left this page, it cannot be recalled.", "승인을 취소했습니다. 카드를 표시하지 않습니다. 이미 나간 요청은 회수할 수 없습니다."],
+  approved: ["Sample approved. Use Send to start the cloud request.", "샘플을 승인했습니다. 전송 버튼을 눌러 클라우드 요청을 시작하세요."],
+  notSent: ["Approval withdrawn. Nothing was sent with this approval.", "승인을 취소했습니다. 이 승인으로 보낸 내용은 없습니다."],
+  preparing: ["Preparing the approved cloud request…", "승인한 클라우드 요청을 준비하는 중입니다…"],
+  checking: ["Verifying this browser with App Check…", "App Check로 이 브라우저를 확인하는 중입니다…"],
+  waiting: ["Waiting for Gemini in the cloud…", "클라우드에서 Gemini 응답을 기다리는 중입니다…"],
+  source: ["Source: Firebase AI Logic · Gemini Developer API · cloud (IN_CLOUD)", "출처: Firebase AI Logic · Gemini Developer API · 클라우드 (IN_CLOUD)"],
+  success: ["Cloud issue card received.", "클라우드 이슈 카드를 받았습니다."],
+  failed: ["Live cloud demo unavailable for this attempt. No cloud card was generated; see the saved example below.", "이번에는 클라우드 데모를 사용할 수 없습니다. 클라우드 카드가 만들어지지 않았습니다. 아래 저장된 예시를 확인하세요."],
+};
+
+initLocale();
 
 const PROJECT = __CLOUD_PROJECT_ID__;
 const MODEL = __CLOUD_MODEL__;
@@ -21,7 +37,7 @@ renderReport(document.querySelector('#verified-card'), DELIVERY_OBSERVATIONS, { 
 const SITE_KEY = __RECAPTCHA_SITE_KEY__;
 approval.disabled = !SITE_KEY;
 if (!SITE_KEY) {
-  status.textContent = 'Live cloud demo unavailable: production App Check is not configured in this build.';
+  setStatus(status, messages.unconfigured);
   fallback.open = true;
 }
 
@@ -40,7 +56,7 @@ function revoke() {
 
 function clearResult() {
   result.hidden = true;
-  source.textContent = '';
+  setStatus(source);
   card.textContent = '';
 }
 
@@ -58,13 +74,13 @@ approval.addEventListener('change', event => {
   if (!event.isTrusted || !selected) return;
   if (attempt && !approval.checked) {
     revoke();
-    status.textContent = 'Approval withdrawn. No card will be shown. If a request already left this page, it cannot be recalled.';
+    setStatus(status, messages.withdrawn);
     return;
   }
   approved = Boolean(SITE_KEY) && !attempt && approval.checked && outgoing.textContent === PROMPT;
   send.disabled = !approved;
-  if (approved) status.textContent = 'Sample approved. Use Send to start the cloud request.';
-  else if (!approval.checked) status.textContent = 'Approval withdrawn. Nothing was sent with this approval.';
+  if (approved) setStatus(status, messages.approved);
+  else if (!approval.checked) setStatus(status, messages.notSent);
 });
 
 async function readSettings(signal) {
@@ -89,7 +105,7 @@ send.addEventListener('click', async event => {
   if (document.activeElement === send) approval.focus();
   send.disabled = true;
   clearResult();
-  status.textContent = 'Preparing the approved cloud request…';
+  setStatus(status, messages.preparing);
   const current = new AbortController();
   const appName = `replay-approved-cloud-${++attemptNumber}`;
   attempt = current;
@@ -108,7 +124,7 @@ send.addEventListener('click', async event => {
     const attestation = check.initializeAppCheck(app, {
       provider: new check.ReCaptchaEnterpriseProvider(SITE_KEY), isTokenAutoRefreshEnabled: false,
     });
-    status.textContent = 'Verifying this browser with App Check…';
+    setStatus(status, messages.checking);
     deadline.throwIfAborted();
     let onAbort;
     try {
@@ -132,20 +148,20 @@ send.addEventListener('click', async event => {
       },
     });
     signal.throwIfAborted();
-    status.textContent = 'Waiting for Gemini in the cloud…';
+    setStatus(status, messages.waiting);
     const { response } = await model.generateContent(PROMPT, { signal, timeout: 25_000 });
     signal.throwIfAborted();
     if (response.inferenceSource !== ai.InferenceSource.IN_CLOUD) throw new Error('Unverified inference source');
     const fix = readRecommendation(response.text());
     renderReport(card, DELIVERY_OBSERVATIONS, { delivery: true, fix });
-    source.textContent = 'Source: Firebase AI Logic · Gemini Developer API · cloud (IN_CLOUD)';
+    setStatus(source, messages.source);
     result.hidden = false;
-    status.textContent = 'Cloud issue card received.';
+    setStatus(status, messages.success);
     // Do not pull users away from wherever they moved while waiting.
     if (document.activeElement === approval) resultTitle.focus();
   } catch {
     if (!signal.aborted) {
-      status.textContent = 'Live cloud demo unavailable for this attempt. No cloud card was generated; see the saved example below.';
+      setStatus(status, messages.failed);
       fallback.open = true;
     }
   } finally {
@@ -165,6 +181,6 @@ addEventListener('pagehide', () => {
   approval.checked = false;
   preview.hidden = true;
   select.setAttribute('aria-expanded', 'false');
-  status.textContent = '';
+  setStatus(status);
   clearResult();
 });
