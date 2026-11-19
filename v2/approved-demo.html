@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="strict-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self'; frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; connect-src 'self' https://www.google.com/recaptcha/ https://content-firebaseappcheck.googleapis.com/v1/projects/replay-demo-invalid/apps/1:000000000000:web:0000000000000000000000:exchangeRecaptchaEnterpriseToken https://firebasevertexai.googleapis.com/v1beta/projects/replay-demo-invalid/models/gemini-3.5-flash-lite:generateContent; form-action 'none'; base-uri 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
   <title>Replay A11y · Approved cloud demo</title>
   <link rel="stylesheet" href="/src/style.css">
   <script type="module" src="/src/approved-demo.js"></script>
@@ -30,7 +30,7 @@
       <h2 id="preview-title" tabindex="-1">2. Review the exact outgoing prompt</h2>
       <pre id="outgoing-preview"></pre>
       <p>This is the complete prompt sent to Gemini through Firebase AI Logic. After you press Send, Google reCAPTCHA checks the browser and the SDK sends Firebase routing metadata and an App Check token. The request includes a JSON schema limiting the answer to one of two recommendation codes.</p>
-      <label class="checkbox"><input id="approve" type="checkbox" autocomplete="off"> I approve sending exactly this synthetic prompt to Gemini in the cloud.</label>
+      <label class="checkbox"><input id="approve" type="checkbox" autocomplete="off" disabled> I approve sending exactly this synthetic prompt to Gemini in the cloud.</label>
       <button id="send" type="button" disabled>Send approved sample to Gemini</button>
     </div>
     <p id="cloud-status" role="status" aria-atomic="true"></p>

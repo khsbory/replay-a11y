@@ -1,7 +1,7 @@
 import { CLOUD_FIXES, DELIVERY_OBSERVATIONS, readRecommendation, renderReport } from './report.js';
 
-const PROJECT = 'replay-demo-invalid';
-const MODEL = 'gemini-3.5-flash-lite';
+const PROJECT = __CLOUD_PROJECT_ID__;
+const MODEL = __CLOUD_MODEL__;
 const FIXTURE = `Before: ${DELIVERY_OBSERVATIONS.before}\nAfter: ${DELIVERY_OBSERVATIONS.after}`;
 const INSTRUCTION = 'Choose a tentative recommendation for this synthetic screen reader comparison. Return only JSON with a fix value: visible_label (give the button descriptive visible text) or programmatic_name (give an icon-only button a matching accessible name). Do not infer the cause from the log.';
 const PROMPT = `${INSTRUCTION}\n\n${FIXTURE}`;
@@ -19,9 +19,9 @@ const resultTitle = document.querySelector('#result-title');
 const fallback = document.querySelector('#verified-fallback');
 renderReport(document.querySelector('#verified-card'), DELIVERY_OBSERVATIONS, { delivery: true, fix: 'visible_label' });
 const SITE_KEY = __RECAPTCHA_SITE_KEY__;
+approval.disabled = !SITE_KEY;
 if (!SITE_KEY) {
   status.textContent = 'Live cloud demo unavailable: production App Check is not configured in this build.';
-  approval.disabled = true;
   fallback.open = true;
 }
 
@@ -75,7 +75,7 @@ async function readSettings(signal) {
   });
   if (!response.ok) throw new Error('Settings unavailable');
   const { projectId, appId, apiKey } = await response.json();
-  if (projectId !== PROJECT || appId !== __VERIFIED_QA_APP__ ||
+  if (projectId !== PROJECT || appId !== __CLOUD_APP_ID__ ||
       typeof apiKey !== 'string' || !/^AIza[A-Za-z0-9_-]{35}$/.test(apiKey)) {
     throw new Error('Invalid web settings');
   }

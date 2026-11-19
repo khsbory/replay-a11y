@@ -13,13 +13,13 @@ npm run build
 npm run preview
 ```
 
-Open <http://127.0.0.1:4173/>. The app lives in `v2/`; the two source pages in sibling `phone/` are copied byte-for-byte into `v2/dist/`. No Firebase account, CLI, secrets, QA files, or parent checkout are needed. `/before.html` and `/after.html` demonstrate the accessibility comparison, and `/approved-demo.html` shows the separate cloud approval flow. The normal build leaves live cloud Send disabled.
+Open <http://127.0.0.1:4173/>. The normal build needs no Firebase account, CLI, credentials, or parent checkout. It supports local cards and previewing the cloud prompt, but neither cloud flow can send. The source pages in `phone/` are copied byte-for-byte into `v2/dist/` as `/before.html` and `/after.html`; try focusing the delivery edit button to compare its accessible name.
 
 ## Local workspace
 
 1. Load an English or Korean synthetic sample, paste text, or select a local UTF-8 `.txt` file (up to 8,000 JavaScript string units). `Before:` / `After:` and `수정 전:` / `수정 후:` pairs are optional.
 2. Prepare the draft. Rules mask common phone, email, amount, and address formats. These rules miss things; review and edit the draft yourself. Only explicitly marked English source **and** eligible English draft text can request optional on-device redaction suggestions. This is a conservative character check, not reliable language detection. Korean, mixed-script, unconfirmed, and unavailable-model cases use rules and manual editing without cloud fallback. Model availability depends on Chrome, the profile and hardware; Chrome can download model components itself.
-3. Inspect the exact draft, check the local approval box, and create the card. Approval is tied to that draft; changes invalidate it. The app reapplies the masking rules and uses the before/after pair, if safe to display, rather than publishing the whole draft. This is not approval to share, and there is no upload from the workspace.
+3. Inspect the exact draft, check the local approval box, and create the card. Approval is tied to that draft; changes invalidate it. The app reapplies the masking rules and uses the before/after pair, if safe to display, rather than publishing the whole draft. Local approval does not authorize a cloud request, and cloud approval does not require a local card.
 
 Each card has the same four sections in English and Korean. The observation quotes are preserved in their original language rather than translated. Review the card before using it.
 
@@ -30,17 +30,39 @@ Each card has the same four sections in English and Korean. The observation quot
 | Retest steps | 재검증 절차 | How to reproduce the comparison |
 | Possible fix | 가능한 수정 | A suggestion, not a confirmed cause |
 
-## Privacy and cloud boundary
+## Connected cloud workflow
 
-The workspace uses no app-side persistence or telemetry and has `connect-src 'none'`. The optional model path requires the Chrome Prompt API, asks Firebase AI Logic for on-device inference only, and accepts only a verified on-device result. The browser/OS and installed extensions are outside these app controls. Redaction is not an anonymization guarantee; use fictional data for demonstrations and review manually before sharing any card.
+On a live-configured deployment, the workspace can ask Gemini to write a bilingual issue card from the reviewed comparison, not just from a fixed sample.
 
-The cloud page has no editor, import, or data handoff. Its model prompt is the fixed instruction plus the literal synthetic comparison (`Before: Button` and `After: Change delivery address, Button` on separate lines). Gemini may choose only one of two recommendation codes; the bilingual card wording is preset. The UI previews the complete prompt, requires human approval, and requires a distinct Send action before requesting Firebase settings, reCAPTCHA Enterprise App Check attestation, and Gemini via Firebase AI Logic. Transport also includes a response schema, routing and attestation metadata; revocation cannot recall an already dispatched request. There is no route for raw transcripts, draft text, local model output, or the fictional address on the phone page to be sent by this UI. Approval is not a server-side abuse control.
+1. Edit the draft to contain exactly one `Before:` / `After:` pair (or `수정 전:` / `수정 후:`). Preview the **entire Gemini user message**, including its instructions, up to 1,000 UTF-16 code units. Other lines are excluded. The app blocks known private values and redaction markers in the selected quotes, but it can miss private details. Read the whole preview and don't approve if anything private remains.
+2. Check the separate cloud approval box, then click **Send**. Preview and approval alone make no cloud requests. Send opens a same-origin relay at `/cloud-relay.html` without a window opener. The URL fragment carries only a random, short-lived channel identifier and is removed before provider code loads. After App Check attestation, the workspace rechecks the source, draft, preview, and approval and grants the relay only the exact previewed message. The workspace itself retains `connect-src 'none'`. Raw records and full drafts are not handed to the relay or saved by the app; App Check may store its own attestation state. The cloud request also carries SDK settings, routing, and attestation metadata.
+3. Keep the relay open and return to the workspace for the result. The relay accepts one completed `IN_CLOUD` bilingual JSON result; the workspace validates the card again and renders it as text. Both editions must quote the before/after lines verbatim. Review Gemini's impact, retest steps and tentative fix before using the card: the log alone cannot confirm the cause.
 
-This standalone candidate does not target a live Firebase project. The example issue card is hand-written, not a stored model response. Cloud transport is exercised only against intercepted synthetic responses in tests. A reCAPTCHA Enterprise **site ID/site key** is a public browser identifier, not an App Check debug token, service credential, or private key. No production site ID, Firebase API key, token, or private credential is bundled here. Do not add credentials to this repository.
+Changing the original or draft, applying a redaction suggestion, withdrawing approval, leaving the workspace, or closing the relay cancels the attempt. The app discards stale results; cancellation cannot recall a request already sent. Failure consumes approval. A retry requires new approval and another Send; there is no automatic retry or local fallback for the cloud card.
+
+`/approved-demo.html` is optional. It previews a fixed fictional delivery comparison and never receives workspace data. If configured, it lets Gemini choose from two recommendation codes; the card text is preset. Its saved example is explicitly not a model response.
+
+The local suggestion flow is separate: it requires Chrome's Prompt API, requests only on-device inference, and accepts only an on-device response. The workspace has no app-side persistence or telemetry. These controls do not cover the browser, OS, or extensions. Redaction is not anonymization; use fictional data for demos and review any card before sharing.
+
+## Enable live mode (project owners only)
+
+The repository has no live project binding. Provision a Firebase web app and Hosting on the project's own origin, enable Firebase AI Logic with the Gemini Developer API backend and access to `gemini-3.5-flash-lite`, and configure App Check with a domain-restricted reCAPTCHA Enterprise score key. Restrict the Firebase browser key to the intended origins and required APIs; configure quotas and App Check enforcement on the project. The UI approval gate is not a server-side abuse control.
+
+In `v2/`, create the ignored `cloud-config.json.local` with exactly these three public browser identifiers, replacing the example values with those of your own project:
+
+```json
+{
+  "projectId": "your-firebase-project",
+  "appId": "1:000000000000:web:0000000000000000000000",
+  "siteKey": "replace_with_public_recaptcha_site_key"
+}
+```
+
+Run `npm run build -- --mode connected-live` to generate `dist/`. This explicit mode requires a valid local config file; the ordinary build ignores it. The live build embeds these public identifiers and narrows the cloud pages' CSP to the configured App Check and model routes. No Firebase API key is read from the file: after Send, the relay or demo reads the same-origin Firebase Hosting endpoint `/__/firebase/init.json` and checks the returned project and app IDs before using its browser settings. Do not add API keys, App Check debug tokens, service accounts, or other credentials to this repository. The project owner supplies the Hosting target separately and serves `dist/` at the origin root with the headers in `v2/firebase.json`. Vite preview does not provide Firebase's reserved settings or Hosting headers. A normal build (including `npm test`) regenerates `dist/` with live Send disabled.
 
 ## Tests
 
-From `v2/`, run `npm test` for local and permission-restricted simulation unit tests, a regular production build, and Playwright + axe using installed Chrome. Playwright uses a separate test build with inert App Check data; the browser provider and cloud transport are simulated, not live Gemini runs. The suite does not replace manual screen-reader testing. If port 4173 is occupied, set `REPLAY_TEST_PORT` to another loopback port (for example, `REPLAY_TEST_PORT=4183 npm test` in a POSIX shell or `$env:REPLAY_TEST_PORT='4183'; npm test` in PowerShell).
+From `v2/`, run `npm test` for local unit tests, a network-denied SDK simulation, a regular production build, and Playwright + axe using installed Chrome. Browser tests use synthetic fixtures in a separate `dist-test/` build (never deploy it). They intercept App Check and Gemini traffic, substitute the Chrome model boundary, and cover relay isolation, exact payloads, approval and cancellation, invalid responses, and the default build's disabled cloud controls. They do not download a browser or model, call live Google services, verify live Hosting or inference, or replace manual screen-reader testing. If port 4173 is occupied, set `REPLAY_TEST_PORT` to another loopback port (for example, `REPLAY_TEST_PORT=4183 npm test` in a POSIX shell or `$env:REPLAY_TEST_PORT='4183'; npm test` in PowerShell).
 
 ## License
 

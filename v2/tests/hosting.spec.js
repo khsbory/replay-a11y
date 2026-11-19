@@ -1,4 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -162,7 +163,7 @@ test('cloud CSP blocks other Firebase API paths and only the exact immutable pre
 
 test('public build contains only declared pages and bundled assets, including the phone accessibility comparison', async ({ page }) => {
   const dist = new URL('../dist-test/', import.meta.url);
-  expect((await readdir(dist)).sort()).toEqual(['after.html', 'approved-demo.html', 'assets', 'before.html', 'index.html']);
+  expect((await readdir(dist)).sort()).toEqual(['after.html', 'approved-demo.html', 'assets', 'before.html', 'cloud-relay.html', 'index.html']);
   const main = await readFile(new URL('index.html', dist), 'utf8');
   expect(main).toContain("connect-src 'none'");
   expect(main).not.toContain('firebasevertexai.googleapis.com');
@@ -182,4 +183,45 @@ test('public build contains only declared pages and bundled assets, including th
   expect(hosting.public).toBe('dist');
   expect(hosting.rewrites).toBeUndefined();
   expect(hosting.headers.flatMap(rule => rule.headers)).toContainEqual({ key: 'X-Frame-Options', value: 'DENY' });
+  for (const [source, value] of [['/', 'same-origin'], ['/index.html', 'same-origin'], ['/{cloud-relay,approved-demo}.html', 'noopener-allow-popups']]) {
+    expect(hosting.headers.find(rule => rule.source === source)?.headers).toContainEqual({ key: 'Cross-Origin-Opener-Policy', value });
+  }
+});
+
+test('ordinary build is preview-only and its cloud pages block connections', async ({ page, baseURL }) => {
+  const dist = new URL('../dist/', import.meta.url);
+  const connectionAttempts = [];
+  await page.context().route('**/*', async route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname === '/' ? '/index.html' : url.pathname;
+    if (url.origin === baseURL && /^\/(?:index\.html|cloud-relay\.html|approved-demo\.html|assets\/[\w.-]+\.(?:js|css))$/.test(path)) {
+      return route.fulfill({ path: fileURLToPath(new URL(path.slice(1), dist)) });
+    }
+    connectionAttempts.push(url.pathname);
+    return route.abort();
+  });
+  await page.goto('/');
+  await page.locator('#source').fill('Before: Collapsed, button\nAfter: Expanded, button');
+  await page.locator('#prepare').click();
+  await expect(page.locator('#cloud-disabled')).toBeVisible();
+  await page.locator('#cloud-preview-button').click();
+  await expect(page.locator('#cloud-outgoing')).toContainText('After: Expanded, button');
+  await expect(page.locator('#cloud-approve')).toBeDisabled();
+  await expect(page.locator('#cloud-send')).toBeDisabled();
+
+  await page.goto('/approved-demo.html');
+  await select(page).click();
+  await expect(approve(page)).toBeDisabled();
+  await expect(send(page)).toBeDisabled();
+  await expect(page.locator('#verified-card')).toBeVisible();
+
+  await page.goto('/cloud-relay.html#00000000-0000-0000-0000-000000000000');
+  await expect(page.locator('#relay-status')).toContainText('No active approval or App Check configuration');
+  await expect(page).toHaveURL(/\/cloud-relay\.html$/);
+  for (const path of ['approved-demo.html', 'cloud-relay.html']) {
+    const html = await readFile(new URL(path, dist), 'utf8');
+    expect(html).toContain("connect-src 'none'");
+    expect(html).not.toMatch(/googleapis\.com|google\.com\/recaptcha/);
+  }
+  expect(connectionAttempts).toEqual([]);
 });

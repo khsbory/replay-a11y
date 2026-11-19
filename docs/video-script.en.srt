@@ -14,7 +14,7 @@ Before the fix, the button has no name.
 
 4
 00:00:18,000 --> 00:00:26,500
-[Before: TalkBack recording pending]
+[TODO: Before TalkBack recording]
 
 5
 00:00:27,500 --> 00:00:31,500
@@ -23,88 +23,95 @@ it changes the delivery address.
 
 6
 00:00:32,000 --> 00:00:40,500
-[After: TalkBack recording pending]
+[TODO: After TalkBack recording]
 
 7
-00:00:42,000 --> 00:00:47,000
-We prepare two excerpts to compare.
+00:00:41,500 --> 00:00:46,000
+We'll use a synthetic Korean transcript.
 
 8
-00:00:47,500 --> 00:00:54,000
-Label them Before and After
-in one UTF-8 text file, then select it.
+00:00:46,500 --> 00:00:53,000
+Label the before and after excerpts
+in one text file, then open it.
 
 9
-00:00:55,000 --> 00:01:01,000
-The app applies pattern masking
-and shows both excerpts for comparison.
+00:00:53,500 --> 00:01:00,000
+Rules mask the phone number.
+The app shows both excerpts.
 
 10
-00:01:06,000 --> 00:01:11,000
-For extra masking, we switch
-to a separate English synthetic sample.
+00:01:01,500 --> 00:01:07,000
+Eligible English text can use
+optional on-device redaction.
 
 11
-00:01:11,500 --> 00:01:17,500
-Rules mask contact details,
-the amount and address, but not the name.
+00:01:07,500 --> 00:01:12,000
+We request a suggestion
+on a separate English sample.
 
 12
-00:01:18,000 --> 00:01:22,500
-We ask the on-device model
-for another redaction.
+00:01:16,000 --> 00:01:20,500
+The app verified an on-device response.
 
 13
-00:01:29,000 --> 00:01:34,000
-The app verified the response
-came from the device.
-
-14
-00:01:34,500 --> 00:01:40,000
+00:01:21,000 --> 00:01:26,500
 It suggests masking the fictional name
 without changing either excerpt.
 
+14
+00:01:27,500 --> 00:01:33,000
+Korean redaction uses no model.
+We remove the remaining name by hand.
+
 15
-00:01:41,500 --> 00:01:47,000
-We apply the suggestion
-and review the exact card text.
+00:01:34,000 --> 00:01:40,000
+The reviewed text can become
+a card on this device.
 
 16
-00:01:47,500 --> 00:01:53,000
-We approve making the card
-on this device. Nothing is sent.
+00:01:40,500 --> 00:01:45,000
+No upload is needed for this card.
 
 17
-00:01:54,500 --> 00:02:00,500
-In a separate cloud demo,
-we select a fixed synthetic sample.
+00:01:46,500 --> 00:01:53,000
+In the same workspace, the cloud option
+takes only the before and after quotes.
 
 18
-00:02:01,000 --> 00:02:06,500
-We review the full outgoing prompt.
-The local draft is not carried over.
+00:01:53,500 --> 00:02:00,000
+Review the full prompt with instructions.
+The limit is 1,000 UTF-16 code units.
 
 19
-00:02:08,000 --> 00:02:15,000
-A person approves this prompt,
-then presses Send as a separate step.
+00:02:01,000 --> 00:02:08,000
+Check for private details and approve.
+Then click Send separately.
 
 20
-00:02:20,500 --> 00:02:25,500
-The source label confirms
-this response came from the cloud.
+00:02:09,000 --> 00:02:15,500
+An isolated tab verifies the browser,
+then sends the approved text.
 
 21
-00:02:26,000 --> 00:02:31,500
-Gemini selects one possible fix.
-The comparison quotes stay fixed.
+00:02:17,500 --> 00:02:22,500
+Back in the workspace, we see
+the cloud result in both languages.
 
 22
-00:02:32,000 --> 00:02:37,000
-The app shows the issue card
-in English and Korean.
+00:02:23,000 --> 00:02:29,500
+Gemini writes the impact, retest steps,
+and a possible fix in both languages.
 
 23
-00:02:38,500 --> 00:02:46,000
-Compare the excerpts and redact them.
-A person reviews what goes in the card.
+00:02:30,000 --> 00:02:35,000
+Both cards keep the approved quotes
+exactly as written.
+
+24
+00:02:35,500 --> 00:02:39,500
+The log alone can't confirm the cause.
+
+25
+00:02:40,500 --> 00:02:46,000
+A person decides what to redact
+and which excerpts, if any, to send.

@@ -1,6 +1,7 @@
 import { EN_SAMPLE, LIMIT, SAMPLE, applySuggestion, canUseEnglishModel, compare, makeReview, redact } from './core.js';
 import { suggestOnDevice } from './device.js';
 import { renderReport } from './report.js';
+import { invalidateCloud } from './connected-workspace.js';
 
 const el = id => document.getElementById(id);
 const source = el('source');
@@ -52,6 +53,7 @@ function revoke() {
 }
 
 function invalidateSource() {
+  invalidateCloud();
   resetSuggestions();
   const hadConsent = revoke();
   reviewStatus.textContent = '';
@@ -134,6 +136,7 @@ file.onchange = async () => {
 };
 
 draft.oninput = () => {
+  invalidateCloud();
   if (revoke()) reviewStatus.textContent = draftRevoked;
   else if (reviewStatus.textContent !== draftRevoked) reviewStatus.textContent = '';
   resetSuggestions();
@@ -219,6 +222,7 @@ suggest.onclick = async () => {
 
 el('apply').onclick = () => {
   if (!proposal || proposal.original !== draft.value) return;
+  invalidateCloud();
   draft.value = proposal.next;
   clearProposal();
   const hadConsent = revoke();
